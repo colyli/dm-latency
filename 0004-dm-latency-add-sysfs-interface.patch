@@ -1,0 +1,83 @@
+Index: linux-latency/drivers/md/dm-sysfs.c
+===================================================================
+--- linux-latency.orig/drivers/md/dm-sysfs.c
++++ linux-latency/drivers/md/dm-sysfs.c
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include <linux/sysfs.h>
++#include <linux/atomic.h>
+ #include <linux/dm-ioctl.h>
+ #include "dm.h"
+ 
+@@ -68,14 +69,70 @@ static ssize_t dm_attr_suspended_show(st
+ 	return strlen(buf);
+ }
+ 
++static ssize_t dm_attr_io_latency_us_show(struct mapped_device *md, char *buf)
++{
++	int slot_base = 0;
++	int i, nr, ptr;
++
++	for (ptr = 0, i = 0; i < DM_LATENCY_STATS_US_NR; i++) {
++		nr = sprintf(buf + ptr,
++			     "%4d - %4d (us): %8d\n",
++			     slot_base,
++			     slot_base + DM_LATENCY_STATS_US_GRAINSIZE - 1,
++			     atomic_read(&md->latency_stats_us[i]));
++		if (nr < 0)
++			break;
++
++		slot_base += DM_LATENCY_STATS_US_GRAINSIZE;
++		ptr += nr;
++	}
++	
++	return strlen(buf);
++}
++
++
++static ssize_t dm_attr_io_latency_ms_show(struct mapped_device *md, char *buf)
++{
++	int slot_base = 0;
++	int i, nr, ptr;
++
++	for (ptr = 0, i = 0; i < (DM_LATENCY_STATS_MS_NR - 1); i++) {
++		nr = sprintf(buf + ptr,
++			     "%4d - %4d (ms): %8d\n",
++			     slot_base,
++			     slot_base + DM_LATENCY_STATS_MS_GRAINSIZE - 1,
++			     atomic_read(&(md->latency_stats_ms[i])));
++		if (nr < 0)
++			break;
++
++		slot_base += DM_LATENCY_STATS_MS_GRAINSIZE;
++		ptr += nr;
++	}
++
++	if (nr > 0) {
++		sprintf(buf + ptr,
++			"%4d -  inf (ms): %8d\n",
++			slot_base,
++			atomic_read(&(md->latency_stats_ms[i])));
++	}
++	
++	return strlen(buf);
++}
++
++
+ static DM_ATTR_RO(name);
+ static DM_ATTR_RO(uuid);
+ static DM_ATTR_RO(suspended);
++static DM_ATTR_RO(io_latency_us);
++static DM_ATTR_RO(io_latency_ms);
++
+ 
+ static struct attribute *dm_attrs[] = {
+ 	&dm_attr_name.attr,
+ 	&dm_attr_uuid.attr,
+ 	&dm_attr_suspended.attr,
++	&dm_attr_io_latency_us.attr,
++	&dm_attr_io_latency_ms.attr,
+ 	NULL,
+ };
+ 
