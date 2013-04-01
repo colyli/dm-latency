@@ -1,16 +1,8 @@
-Index: linux-latency/drivers/md/dm-sysfs.c
+Index: linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
 ===================================================================
---- linux-latency.orig/drivers/md/dm-sysfs.c
-+++ linux-latency/drivers/md/dm-sysfs.c
-@@ -5,6 +5,7 @@
-  */
- 
- #include <linux/sysfs.h>
-+#include <linux/atomic.h>
- #include <linux/dm-ioctl.h>
- #include "dm.h"
- 
-@@ -68,14 +69,70 @@ static ssize_t dm_attr_suspended_show(st
+--- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm-sysfs.c
++++ linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
+@@ -64,14 +64,70 @@ static ssize_t dm_attr_suspended_show(st
  	return strlen(buf);
  }
  

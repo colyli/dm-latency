@@ -1,8 +1,16 @@
-Index: linux-latency/drivers/md/dm.c
+Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
 ===================================================================
---- linux-latency.orig/drivers/md/dm.c
-+++ linux-latency/drivers/md/dm.c
-@@ -60,6 +60,7 @@ struct dm_io {
+--- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm.c
++++ linux-2.6.32-279.14.1.el5/drivers/md/dm.c
+@@ -20,6 +20,7 @@
+ #include <linux/idr.h>
+ #include <linux/hdreg.h>
+ #include <linux/delay.h>
++#include <linux/clocksource.h>
+ 
+ #include <trace/events/block.h>
+ 
+@@ -49,6 +50,7 @@ struct dm_io {
  	struct bio *bio;
  	unsigned long start_time;
  	spinlock_t endio_lock;
@@ -10,7 +18,7 @@ Index: linux-latency/drivers/md/dm.c
  };
  
  /*
-@@ -391,6 +392,42 @@ static int md_in_flight(struct mapped_de
+@@ -384,6 +386,42 @@ static int md_in_flight(struct mapped_de
  	       atomic_read(&md->pending[WRITE]);
  }
  
@@ -34,7 +42,7 @@ Index: linux-latency/drivers/md/dm.c
 +	int idx;
 +	now = (unsigned long long)ns2usecs(sched_clock());
 +	latency = (unsigned long long)(now - io->start_time_usec);
-+	
++
 +	if (latency < 1000) {
 +		/* microseconds */
 +		idx = latency/DM_LATENCY_STATS_US_GRAINSIZE;
@@ -53,24 +61,24 @@ Index: linux-latency/drivers/md/dm.c
  static void start_io_acct(struct dm_io *io)
  {
  	struct mapped_device *md = io->md;
-@@ -399,6 +436,7 @@ static void start_io_acct(struct dm_io *
+@@ -391,6 +429,7 @@ static void start_io_acct(struct dm_io *
+ 	int rw = bio_data_dir(io->bio);
  
- 	dm_enter
  	io->start_time = jiffies;
 +	io->start_time_usec = (unsigned long long)ns2usecs(sched_clock());
  
  	cpu = part_stat_lock();
  	part_round_stats(cpu, &dm_disk(md)->part0);
-@@ -420,6 +458,8 @@ static void end_io_acct(struct dm_io *io
- 	part_round_stats(cpu, &dm_disk(md)->part0);
+@@ -411,6 +450,8 @@ static void end_io_acct(struct dm_io *io
  	part_stat_add(cpu, &dm_disk(md)->part0, ticks[rw], duration);
  	part_stat_unlock();
-+ 
-+	update_latency_stats(md, io);
  
++	update_latency_stats(md, io);
++
  	/*
  	 * After this is decremented the bio must not be touched if it is
-@@ -1932,6 +1972,12 @@ static struct mapped_device *alloc_dev(i
+ 	 * a flush.
+@@ -1828,6 +1869,12 @@ static struct mapped_device *alloc_dev(i
  	md->flush_bio.bi_bdev = md->bdev;
  	md->flush_bio.bi_rw = WRITE_FLUSH;
  
@@ -83,11 +91,11 @@ Index: linux-latency/drivers/md/dm.c
  	/* Populate the mapping, nobody knows we exist yet */
  	spin_lock(&_minor_lock);
  	old_md = idr_replace(&_minor_idr, md, minor);
-Index: linux-latency/drivers/md/dm.h
+Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.h
 ===================================================================
---- linux-latency.orig/drivers/md/dm.h
-+++ linux-latency/drivers/md/dm.h
-@@ -34,6 +34,12 @@
+--- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm.h
++++ linux-2.6.32-279.14.1.el5/drivers/md/dm.h
+@@ -29,6 +29,12 @@
  #define DM_TYPE_BIO_BASED	1
  #define DM_TYPE_REQUEST_BASED	2
  
