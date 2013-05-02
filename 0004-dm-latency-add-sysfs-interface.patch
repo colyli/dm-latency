@@ -1,8 +1,16 @@
-Index: linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
+Index: linux-latency/drivers/md/dm-sysfs.c
 ===================================================================
---- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm-sysfs.c
-+++ linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
-@@ -64,14 +64,70 @@ static ssize_t dm_attr_suspended_show(st
+--- linux-latency.orig/drivers/md/dm-sysfs.c
++++ linux-latency/drivers/md/dm-sysfs.c
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include <linux/sysfs.h>
++#include <linux/atomic.h>
+ #include <linux/dm-ioctl.h>
+ #include "dm.h"
+ 
+@@ -68,14 +69,70 @@ static ssize_t dm_attr_suspended_show(st
  	return strlen(buf);
  }
  
@@ -13,7 +21,7 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
 +
 +	for (ptr = 0, i = 0; i < DM_LATENCY_STATS_US_NR; i++) {
 +		nr = sprintf(buf + ptr,
-+			     "%4d - %4d (us): %8d\n",
++			     "%d-%d(us):%d\n",
 +			     slot_base,
 +			     slot_base + DM_LATENCY_STATS_US_GRAINSIZE - 1,
 +			     atomic_read(&md->latency_stats_us[i]));
@@ -23,7 +31,7 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
 +		slot_base += DM_LATENCY_STATS_US_GRAINSIZE;
 +		ptr += nr;
 +	}
-+	
++
 +	return strlen(buf);
 +}
 +
@@ -35,7 +43,7 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
 +
 +	for (ptr = 0, i = 0; i < (DM_LATENCY_STATS_MS_NR - 1); i++) {
 +		nr = sprintf(buf + ptr,
-+			     "%4d - %4d (ms): %8d\n",
++			     "%d-%d(ms):%8d\n",
 +			     slot_base,
 +			     slot_base + DM_LATENCY_STATS_MS_GRAINSIZE - 1,
 +			     atomic_read(&(md->latency_stats_ms[i])));
@@ -52,7 +60,7 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm-sysfs.c
 +			slot_base,
 +			atomic_read(&(md->latency_stats_ms[i])));
 +	}
-+	
++
 +	return strlen(buf);
 +}
 +
