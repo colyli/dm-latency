@@ -1,4 +1,3 @@
-#0001-dm-and-trace-info.patch
 0002-dm-latency-move-mapped_device-struct-into-dm_h.patch
 0003-dm-latency-add-latency-measurement.patch
 0004-dm-latency-add-sysfs-interface.patch
