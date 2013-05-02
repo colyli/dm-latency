@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <libgen.h>
+#include <ctype.h>
 
 #define IO_LATENCY_THRESHOLD_CONFIG	"/etc/sysconfig/io_latency_threshold"
 
@@ -16,7 +17,7 @@ static int check_parameters(const char *target_name,
 			   int latency_warning_nr)
 {
 	struct stat stat_buf;
-	int ret, fd;
+	int ret;
 
 	if (!target_name ||
 	    !strlen(target_name)) {
@@ -207,7 +208,7 @@ int load_dm_latency_stats(int fd,
 			break;
 
 		*end = '\0';
-		ret = sscanf(start, "%d-%d(ms):%ul",
+		ret = sscanf(start, "%d-%d(ms):%lu",
 			     &level_start, &level_end, &nr);
 		printf("%d-%d(ms):%lu\n", level_start, level_end, nr);
 		(*records)[i].start = level_start;
