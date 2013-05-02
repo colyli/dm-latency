@@ -2,3 +2,5 @@
 0002-dm-latency-move-mapped_device-struct-into-dm_h.patch
 0003-dm-latency-add-latency-measurement.patch
 0004-dm-latency-add-sysfs-interface.patch
+0005-dm-latency-add-reset-function-in-sysfs-interface.patch
+
