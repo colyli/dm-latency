@@ -12,18 +12,16 @@
 
 #define IO_LATENCY_THRESHOLD_CONFIG	"/etc/sysconfig/io_latency_threshold"
 
+#define DEBUG
+
 static int check_parameters(const char *target_name,
 			   int latency_threshold,
 			   int latency_warning_nr)
 {
 	struct stat stat_buf;
+	char *name, *dev;
+	char path[512] = {0,};
 	int ret;
-
-	if (!target_name ||
-	    !strlen(target_name)) {
-		ret = -ENOENT;
-		goto out;
-	}
 
 	if (latency_threshold < 0 ||
 	    latency_warning_nr < 0) {
@@ -31,16 +29,24 @@ static int check_parameters(const char *target_name,
 		goto out;
 	}
 
-	ret = stat(target_name, &stat_buf);
-	if (ret < 0)
+	name = strdup(target_name);
+	if (!name)
 		goto out;
+
+	dev = basename(name);
+	snprintf(path, sizeof(path), "/dev/%s", dev);
+	ret = stat(path, &stat_buf);
+	if (ret < 0)
+		goto out_memory;
 
 
 	if (!S_ISBLK(stat_buf.st_mode)) {
 		ret = -ENOTBLK;
-		goto out;
+		goto out_memory;
 	}
 
+out_memory:
+	free(name);
 out:
 	return ret;
 
@@ -109,6 +115,7 @@ int load_system_default_configs(int *latency_threshold,
 		goto out_close_file;
 	}
 	*latency_warning_nr = (int)val;
+	ret = 0;
 
 out_close_file:
 	close(fd);
@@ -121,7 +128,7 @@ int open_dm_target_latency_profile(const char *target_name)
 {
 	char *name;
 	char *ptr, *dev;
-	char path[512];
+	char path[512] = {0, };
 	int fd = -1;
 
 	name = strdup(target_name);
@@ -210,7 +217,9 @@ int load_dm_latency_stats(int fd,
 		*end = '\0';
 		ret = sscanf(start, "%d-%d(ms):%lu",
 			     &level_start, &level_end, &nr);
+#ifdef DEBUG
 		printf("%d-%d(ms):%lu\n", level_start, level_end, nr);
+#endif
 		(*records)[i].start = level_start;
 		(*records)[i].length = level_end - level_start + 1;
 		(*records)[i].nr = nr;
@@ -234,6 +243,7 @@ out:
 /*
  * return 1, no threshold triggered
  *        0, latency threshold triggered
+ *        -1, error
  */
 int is_dm_target_io_latency_ok(const char *target_name,
 			       int latency_threshold,
@@ -299,13 +309,16 @@ int is_dm_target_io_latency_ok(const char *target_name,
 	if (delta >= latency_warning_nr)
 		ret = 0;
 	else
-		ret = -1;
+		ret = 1;
+
+#ifdef DEBUG
+	printf("threshold: %d, nr: %d\n", latency_threshold, latency_warning_nr);
+#endif
 
 out_release_memory:
 	free(latency_records);
 out_close_profile:
 	close_dm_target_latency_profile(&fd);
-
 out:
 	return ret;
 }
