@@ -1,7 +1,7 @@
-Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
+Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
 ===================================================================
---- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm.c
-+++ linux-2.6.32-279.14.1.el5/drivers/md/dm.c
+--- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm.c
++++ linux-2.6.32-220.23.2.el5/drivers/md/dm.c
 @@ -20,6 +20,7 @@
  #include <linux/idr.h>
  #include <linux/hdreg.h>
@@ -78,7 +78,7 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
  	/*
  	 * After this is decremented the bio must not be touched if it is
  	 * a flush.
-@@ -1828,6 +1869,12 @@ static struct mapped_device *alloc_dev(i
+@@ -1815,6 +1856,12 @@ static struct mapped_device *alloc_dev(i
  	md->flush_bio.bi_bdev = md->bdev;
  	md->flush_bio.bi_rw = WRITE_FLUSH;
  
@@ -91,10 +91,10 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
  	/* Populate the mapping, nobody knows we exist yet */
  	spin_lock(&_minor_lock);
  	old_md = idr_replace(&_minor_idr, md, minor);
-Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.h
+Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.h
 ===================================================================
---- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm.h
-+++ linux-2.6.32-279.14.1.el5/drivers/md/dm.h
+--- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm.h
++++ linux-2.6.32-220.23.2.el5/drivers/md/dm.h
 @@ -29,6 +29,12 @@
  #define DM_TYPE_BIO_BASED	1
  #define DM_TYPE_REQUEST_BASED	2
