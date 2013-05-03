@@ -14,7 +14,7 @@
 
 #define DEBUG
 
-static int check_parameters(const char *target_name,
+static static int check_parameters(const char *target_name,
 			   int latency_threshold,
 			   int latency_warning_nr)
 {
@@ -58,7 +58,7 @@ struct latency_record {
 	unsigned long nr;
 };
 
-int load_system_default_configs(int *latency_threshold,
+static int load_system_default_configs(int *latency_threshold,
 				int *latency_warning_nr)
 {
 	int fd;
@@ -124,7 +124,7 @@ out:
 }
 
 
-int open_dm_target_latency_profile(const char *target_name)
+static int open_dm_target_latency_profile(const char *target_name)
 {
 	char *name;
 	char *ptr, *dev;
@@ -153,7 +153,7 @@ out:
 	return fd;
 }
 
-void close_dm_target_latency_profile(int *fd)
+static void close_dm_target_latency_profile(int *fd)
 {
 	close(*fd);
 	*fd = -1;
@@ -164,7 +164,7 @@ void close_dm_target_latency_profile(int *fd)
  *
  * we can use ':' in the format to determine number of record lines
  */
-int load_dm_latency_stats(int fd,
+static int load_dm_latency_stats(int fd,
 			  struct latency_record **records,
 			  unsigned long *levels)
 {
