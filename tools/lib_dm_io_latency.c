@@ -253,6 +253,7 @@ int is_dm_target_io_latency_ok(const char *target_name,
 	int fd, i;
 	unsigned long levels, total, start, end;
 	static unsigned long last_total;
+	static int firsttime = 1;
 	int delta;
 
 	struct latency_record  *latency_records = NULL;
@@ -305,11 +306,16 @@ int is_dm_target_io_latency_ok(const char *target_name,
 	delta = total - last_total;
 	last_total = total;
 
-	/* latency threshold triggered */
-	if (delta >= latency_warning_nr)
-		ret = 0;
-	else
+	if (firsttime) {
+		/* the first time last_total is 0, should ignore */
+		firsttime = 0;
 		ret = 1;
+	} else if (delta >= latency_warning_nr) {
+		/* latency threshold triggered */
+		ret = 0;
+	} else {
+		ret = 1;
+	}
 
 #ifdef DEBUG
 	printf("threshold: %d, nr: %d\n", latency_threshold, latency_warning_nr);
