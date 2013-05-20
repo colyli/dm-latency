@@ -14,21 +14,14 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
  	struct bio *bio;
  	unsigned long start_time;
  	spinlock_t endio_lock;
-+	unsigned long long start_time_usec;
++	unsigned long start_time_usec;
  };
  
  /*
-@@ -384,6 +386,42 @@ static int md_in_flight(struct mapped_de
+@@ -384,13 +386,54 @@ static int md_in_flight(struct mapped_de
  	       atomic_read(&md->pending[WRITE]);
  }
  
-+static unsigned long long ns2usecs(cycle_t nsec)
-+{
-+	nsec += 500;
-+	do_div(nsec, 1000);
-+	return nsec;
-+}
-+
 +static unsigned long long us2msecs(unsigned long long usec)
 +{
 +	usec += 500;
@@ -38,38 +31,49 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
 +
 +static void update_latency_stats(struct mapped_device *md, struct dm_io *io)
 +{
-+	unsigned long long now, latency;
++	unsigned long now, latency;
 +	int idx;
-+	now = (unsigned long long)ns2usecs(sched_clock());
-+	latency = (unsigned long long)(now - io->start_time_usec);
++	ktime_t ts;
 +
-+	if (latency < 1000) {
-+		/* microseconds */
-+		idx = latency/DM_LATENCY_STATS_US_GRAINSIZE;
-+		if (idx > (DM_LATENCY_STATS_US_NR - 1))
-+			idx = DM_LATENCY_STATS_US_NR - 1;
-+		atomic_inc(&(md->latency_stats_us[idx]));
-+	} else {
-+		/* milliseconds */
-+		idx = us2msecs(latency)/DM_LATENCY_STATS_MS_GRAINSIZE;
-+		if (idx > (DM_LATENCY_STATS_MS_NR - 1))
-+			idx = DM_LATENCY_STATS_MS_NR - 1;
-+		atomic_inc(&(md->latency_stats_ms[idx]));
++	ts = ktime_get();
++	now = (unsigned long)ktime_to_us(ts);
++
++	if (now > io->start_time_usec) {
++		latency = (unsigned long)(now - io->start_time_usec);
++		if (latency < 1000) {
++			/* microseconds */
++			idx = latency/DM_LATENCY_STATS_US_GRAINSIZE;
++			if (idx > (DM_LATENCY_STATS_US_NR - 1))
++				idx = DM_LATENCY_STATS_US_NR - 1;
++			atomic_inc(&(md->latency_stats_us[idx]));
++		} else {
++			/* milliseconds */
++			idx = us2msecs(latency)/DM_LATENCY_STATS_MS_GRAINSIZE;
++			if (idx > (DM_LATENCY_STATS_MS_NR - 1))
++				idx = DM_LATENCY_STATS_MS_NR - 1;
++			atomic_inc(&(md->latency_stats_ms[idx]));
++		}
 +	}
++	/*
++	 * if now <= io->start_time_usec, it means counter in ktime_get()
++	 * over flows, just ignore this I/O
++	 */
 +}
 +
  static void start_io_acct(struct dm_io *io)
  {
  	struct mapped_device *md = io->md;
-@@ -391,6 +429,7 @@ static void start_io_acct(struct dm_io *
++	ktime_t ts;
+ 	int cpu;
  	int rw = bio_data_dir(io->bio);
  
  	io->start_time = jiffies;
-+	io->start_time_usec = (unsigned long long)ns2usecs(sched_clock());
++	ts = ktime_get();
++	io->start_time_usec = (unsigned long)ktime_to_us(ts);
  
  	cpu = part_stat_lock();
  	part_round_stats(cpu, &dm_disk(md)->part0);
-@@ -411,6 +450,8 @@ static void end_io_acct(struct dm_io *io
+@@ -411,6 +454,8 @@ static void end_io_acct(struct dm_io *io
  	part_stat_add(cpu, &dm_disk(md)->part0, ticks[rw], duration);
  	part_stat_unlock();
  
@@ -78,7 +82,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
  	/*
  	 * After this is decremented the bio must not be touched if it is
  	 * a flush.
-@@ -1815,6 +1856,12 @@ static struct mapped_device *alloc_dev(i
+@@ -1815,6 +1860,12 @@ static struct mapped_device *alloc_dev(i
  	md->flush_bio.bi_bdev = md->bdev;
  	md->flush_bio.bi_rw = WRITE_FLUSH;
  
