@@ -6,7 +6,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
   */
  
  #include <linux/sysfs.h>
-+#include <linux/atomic.h>
++#include <asm/atomic.h>
  #include <linux/dm-ioctl.h>
  #include "dm.h"
  
