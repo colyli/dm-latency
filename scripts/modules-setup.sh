@@ -7,6 +7,7 @@ ko_path=/lib/modules/$uts/kernel/drivers/md/dm-mod.ko
 initrd_path=/boot/initrd-2.6.32-220.23.1.tb750.el5.x86_64.img
 
 # move dm-mod.ko to current kernel's driver path
+rmmod dm_mod
 if [ "$uts" == "2.6.32-131.6.1.tbay6.master.x86_64" ];then
 	ko_file="dm-mod.ko.2.6.32-131.6.1.tbay6.master.x86_64"
 else
