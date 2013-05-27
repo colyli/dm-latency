@@ -1,15 +1,15 @@
-Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
+Index: linux-2.6.32-131.6.1.el6/drivers/md/dm.c
 ===================================================================
---- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm.c
-+++ linux-2.6.32-279.14.1.el5/drivers/md/dm.c
-@@ -112,86 +112,6 @@ EXPORT_SYMBOL_GPL(dm_get_rq_mapinfo);
- #define DMF_MERGE_IS_OPTIONAL 6
+--- linux-2.6.32-131.6.1.el6.orig/drivers/md/dm.c
++++ linux-2.6.32-131.6.1.el6/drivers/md/dm.c
+@@ -111,84 +111,6 @@ EXPORT_SYMBOL_GPL(dm_get_rq_mapinfo);
+ #define DMF_NOFLUSH_SUSPENDING 5
  
  /*
 - * Work processed by per-device workqueue.
 - */
 -struct mapped_device {
--	uint64_t features;	/* 3rd party driver must initialize to zero */
+-	uint64_t features;
 -	struct rw_semaphore io_lock;
 -	struct mutex suspend_lock;
 -	rwlock_t map_lock;
@@ -22,8 +22,6 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
 -	unsigned type;
 -	/* Protect queue and type against concurrent access. */
 -	struct mutex type_lock;
--
--	struct target_type *immutable_target_type;
 -
 -	struct gendisk *disk;
 -	char name[16];
@@ -89,18 +87,18 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.c
   * For mempools pre-allocation at the table loading time.
   */
  struct dm_md_mempools {
-Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.h
+Index: linux-2.6.32-131.6.1.el6/drivers/md/dm.h
 ===================================================================
---- linux-2.6.32-279.14.1.el5.orig/drivers/md/dm.h
-+++ linux-2.6.32-279.14.1.el5/drivers/md/dm.h
-@@ -30,6 +30,86 @@
+--- linux-2.6.32-131.6.1.el6.orig/drivers/md/dm.h
++++ linux-2.6.32-131.6.1.el6/drivers/md/dm.h
+@@ -30,6 +30,84 @@
  #define DM_TYPE_REQUEST_BASED	2
  
  /*
 + * Work processed by per-device workqueue.
 + */
 +struct mapped_device {
-+	uint64_t features;	/* 3rd party driver must initialize to zero */
++	uint64_t features;
 +	struct rw_semaphore io_lock;
 +	struct mutex suspend_lock;
 +	rwlock_t map_lock;
@@ -113,8 +111,6 @@ Index: linux-2.6.32-279.14.1.el5/drivers/md/dm.h
 +	unsigned type;
 +	/* Protect queue and type against concurrent access. */
 +	struct mutex type_lock;
-+
-+	struct target_type *immutable_target_type;
 +
 +	struct gendisk *disk;
 +	char name[16];

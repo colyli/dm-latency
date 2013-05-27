@@ -1,7 +1,7 @@
-Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
+Index: linux-2.6.32-131.6.1.el6/drivers/md/dm.c
 ===================================================================
---- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm.c
-+++ linux-2.6.32-220.23.2.el5/drivers/md/dm.c
+--- linux-2.6.32-131.6.1.el6.orig/drivers/md/dm.c
++++ linux-2.6.32-131.6.1.el6/drivers/md/dm.c
 @@ -20,6 +20,7 @@
  #include <linux/idr.h>
  #include <linux/hdreg.h>
@@ -18,7 +18,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
  };
  
  /*
-@@ -384,13 +386,54 @@ static int md_in_flight(struct mapped_de
+@@ -383,13 +385,54 @@ static int md_in_flight(struct mapped_de
  	       atomic_read(&md->pending[WRITE]);
  }
  
@@ -73,7 +73,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
  
  	cpu = part_stat_lock();
  	part_round_stats(cpu, &dm_disk(md)->part0);
-@@ -411,6 +454,8 @@ static void end_io_acct(struct dm_io *io
+@@ -410,6 +453,8 @@ static void end_io_acct(struct dm_io *io
  	part_stat_add(cpu, &dm_disk(md)->part0, ticks[rw], duration);
  	part_stat_unlock();
  
@@ -82,7 +82,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
  	/*
  	 * After this is decremented the bio must not be touched if it is
  	 * a flush.
-@@ -1815,6 +1860,12 @@ static struct mapped_device *alloc_dev(i
+@@ -1814,6 +1859,12 @@ static struct mapped_device *alloc_dev(i
  	md->flush_bio.bi_bdev = md->bdev;
  	md->flush_bio.bi_rw = WRITE_FLUSH;
  
@@ -95,10 +95,10 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
  	/* Populate the mapping, nobody knows we exist yet */
  	spin_lock(&_minor_lock);
  	old_md = idr_replace(&_minor_idr, md, minor);
-Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.h
+Index: linux-2.6.32-131.6.1.el6/drivers/md/dm.h
 ===================================================================
---- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm.h
-+++ linux-2.6.32-220.23.2.el5/drivers/md/dm.h
+--- linux-2.6.32-131.6.1.el6.orig/drivers/md/dm.h
++++ linux-2.6.32-131.6.1.el6/drivers/md/dm.h
 @@ -29,6 +29,12 @@
  #define DM_TYPE_BIO_BASED	1
  #define DM_TYPE_REQUEST_BASED	2
@@ -112,7 +112,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.h
  /*
   * Work processed by per-device workqueue.
   */
-@@ -107,6 +113,10 @@ struct mapped_device {
+@@ -105,6 +111,10 @@ struct mapped_device {
  
  	/* zero-length flush that will be cloned and submitted to targets */
  	struct bio flush_bio;
