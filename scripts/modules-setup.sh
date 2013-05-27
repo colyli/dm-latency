@@ -1,29 +1,36 @@
 #!/bin/sh -x
-set e
 
-uts=`uname -r`
-modules_file=/etc/sysconfig/modules/dm-targets.modules
-ko_path=/lib/modules/$uts/kernel/drivers/md/dm-mod.ko
-initrd_path=/boot/initrd-2.6.32-220.23.1.tb750.el5.x86_64.img
+set +e
 
 # move dm-mod.ko to current kernel's driver path
-rmmod dm_mod
-if [ "$uts" == "2.6.32-131.6.1.tbay6.master.x86_64" ];then
-	ko_file="dm-mod.ko.2.6.32-131.6.1.tbay6.master.x86_64"
-else
+for mod in dm_mirror rmmod dm_multipath rmmod dm_raid45 dm_memcache dm_region_hash dm_log dm_mod;do
+	rmmod $mod > /dev/null 2>&1
+done
+
+set -e
+uts=`uname -r`
+modules_file=/etc/sysconfig/modules/dm-targets.modules
+ko_path=/lib/modules/$uts/kernel/drivers/md/
+ko_file=dm-mod.ko.2.6.32-131.6.1.tbay6.master.x86_64
+initrd=/boot/initrd-2.6.32-131.6.1.tbay6.master.x86_64.img
+
+if [ "$uts" != "2.6.32-131.6.1.tbay6.master.x86_64" ];then
 	echo "dismatch kernel version"
 	exit 1
 fi
 
-if [ -e $ko_path ];then
-	mv $ko_path ./dm-mod.ko.bak
+if [ -e $ko_path/dm-mod.ko ];then
+    rm -f ./dm-mod.ko.bak
+    mv  $ko_path/dm-mod.ko ./dm-mod.ko.bak
 fi
-cp -f ./dm-mod.ko $ko_path
+cp  $ko_file $ko_path/dm-mod.ko
 
 # rebuild initrd
-if [ -e $initrd_path ];then
-	mv $initrd_path ./initrd.bak
+if [ -e $initrd ];then
+    rm -f ./initrd.bak
+    mv $initrd ./initrd.bak
 fi
+    
 pushd /boot
 mkinitrd --without-usb --force-lvm-probe /boot/initrd-2.6.32-131.6.1.tbay6.master.x86_64.img 2.6.32-131.6.1.tbay6.master.x86_64
 popd
