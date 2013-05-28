@@ -1,5 +1,5 @@
 #!/bin/sh -x
-set e
+set -e
 
 # fdisk lists device size in 1K blocks, get_target_size()
 # return device size in 512bytes sectors.
@@ -10,6 +10,11 @@ get_target_size() {
 }
 
 for dev in b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1;do
+	umount /dev/sd$dev
 	size=`get_target_size sd$dev`
 	echo "0 $size linear /dev/sd$dev 0" | dmsetup create sd"$dev"
 done
+
+# /etc/fstab is updated in modules_setup.sh, we can mount all partitions
+# just with -a option.
+mount -a
