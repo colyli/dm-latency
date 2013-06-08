@@ -1,7 +1,7 @@
-Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
+Index: linux-2.6.32-131.6.1.el6/drivers/md/dm-sysfs.c
 ===================================================================
---- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm-sysfs.c
-+++ linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
+--- linux-2.6.32-131.6.1.el6.orig/drivers/md/dm-sysfs.c
++++ linux-2.6.32-131.6.1.el6/drivers/md/dm-sysfs.c
 @@ -5,6 +5,7 @@
   */
  
@@ -10,7 +10,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
  #include <linux/dm-ioctl.h>
  #include "dm.h"
  
-@@ -64,14 +65,70 @@ static ssize_t dm_attr_suspended_show(st
+@@ -64,14 +65,83 @@ static ssize_t dm_attr_suspended_show(st
  	return strlen(buf);
  }
  
@@ -41,7 +41,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
 +	int slot_base = 0;
 +	int i, nr, ptr;
 +
-+	for (ptr = 0, i = 0; i < (DM_LATENCY_STATS_MS_NR - 1); i++) {
++	for (ptr = 0, i = 0; i < DM_LATENCY_STATS_MS_NR; i++) {
 +		nr = sprintf(buf + ptr,
 +			     "%d-%d(ms):%d\n",
 +			     slot_base,
@@ -54,23 +54,35 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
 +		ptr += nr;
 +	}
 +
-+	if (nr > 0) {
-+		sprintf(buf + ptr,
-+			"%d-100000(ms):%d\n",
-+			slot_base,
-+			atomic_read(&(md->latency_stats_ms[i])));
++}
++
++static ssize_t dm_attr_io_latency_s_show(struct mapped_device *md, char *buf)
++{
++	int slot_base = 0;
++	int i, nr , ptr;
++
++	for(ptr = 0, i = 0; i < DM_LATENCY_STATS_S_NR; i++) {
++		nr = sprintf(buf + ptr,
++			      "%d-%d(s):%d\n",
++			      slot_base,
++			      slot_base + DM_LATENCY_STATS_S_GRAINSIZE - 1,
++			      atomic_read(&(md->latency_stats_s[i])));
++		if (nr < 0)
++			break;
++
++		slot_base += DM_LATENCY_STATS_S_GRAINSIZE;
++		ptr += nr;
 +	}
 +
 +	return strlen(buf);
 +}
-+
 +
  static DM_ATTR_RO(name);
  static DM_ATTR_RO(uuid);
  static DM_ATTR_RO(suspended);
 +static DM_ATTR_RO(io_latency_us);
 +static DM_ATTR_RO(io_latency_ms);
-+
++static DM_ATTR_RO(io_latency_s);
  
  static struct attribute *dm_attrs[] = {
  	&dm_attr_name.attr,
@@ -78,6 +90,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
  	&dm_attr_suspended.attr,
 +	&dm_attr_io_latency_us.attr,
 +	&dm_attr_io_latency_ms.attr,
++	&dm_attr_io_latency_s.attr,
  	NULL,
  };
  

@@ -1,7 +1,7 @@
-Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
+Index: linux-2.6.32-131.6.1.el6/drivers/md/dm-sysfs.c
 ===================================================================
---- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm-sysfs.c
-+++ linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
+--- linux-2.6.32-131.6.1.el6.orig/drivers/md/dm-sysfs.c
++++ linux-2.6.32-131.6.1.el6/drivers/md/dm-sysfs.c
 @@ -12,13 +12,17 @@
  struct dm_sysfs_attr {
  	struct attribute attr;
@@ -49,7 +49,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
  static ssize_t dm_attr_name_show(struct mapped_device *md, char *buf)
  {
  	if (dm_copy_name_and_uuid(md, buf, NULL))
-@@ -115,13 +140,24 @@ static ssize_t dm_attr_io_latency_ms_sho
+@@ -128,12 +153,27 @@ static ssize_t dm_attr_io_latency_s_show
  	return strlen(buf);
  }
  
@@ -62,23 +62,25 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm-sysfs.c
 +		atomic_set(&md->latency_stats_us[i], 0);
 +	for (i = 0; i < DM_LATENCY_STATS_MS_NR; i++)
 +		atomic_set(&md->latency_stats_ms[i], 0);
++	for (i = 0; i < DM_LATENCY_STATS_S_NR; i++)
++		atomic_set(&md->latency_stats_s[i], 0);
 +	return len;
 +}
- 
++
  static DM_ATTR_RO(name);
  static DM_ATTR_RO(uuid);
  static DM_ATTR_RO(suspended);
  static DM_ATTR_RO(io_latency_us);
  static DM_ATTR_RO(io_latency_ms);
--
+ static DM_ATTR_RO(io_latency_s);
 +static DM_ATTR_RW(io_latency_reset);
  
  static struct attribute *dm_attrs[] = {
  	&dm_attr_name.attr,
-@@ -129,11 +165,13 @@ static struct attribute *dm_attrs[] = {
- 	&dm_attr_suspended.attr,
+@@ -142,11 +182,13 @@ static struct attribute *dm_attrs[] = {
  	&dm_attr_io_latency_us.attr,
  	&dm_attr_io_latency_ms.attr,
+ 	&dm_attr_io_latency_s.attr,
 +	&dm_attr_io_latency_reset.attr,
  	NULL,
  };
