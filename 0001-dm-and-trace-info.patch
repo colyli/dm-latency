@@ -587,15 +587,15 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(!mutex_is_locked(&dm_bufio_clients_lock));
  	BUG_ON(dm_bufio_client_count < 0);
  
-@@ -319,6 +325,7 @@ static void __cache_size_refresh(void)
- static void *alloc_buffer_data(struct dm_bufio_client *c, gfp_t gfp_mask,
- 			       enum data_mode *data_mode)
- {
+@@ -322,6 +328,7 @@ static void *alloc_buffer_data(struct dm
+ 	unsigned noio_flag;
+ 	void *ptr;
+ 
 +	dm_enter
  	if (c->block_size <= DM_BUFIO_BLOCK_SIZE_SLAB_LIMIT) {
  		*data_mode = DATA_MODE_SLAB;
  		return kmem_cache_alloc(DM_BUFIO_CACHE(c), gfp_mask);
-@@ -341,6 +348,7 @@ static void *alloc_buffer_data(struct dm
+@@ -363,6 +370,7 @@ static void *alloc_buffer_data(struct dm
  static void free_buffer_data(struct dm_bufio_client *c,
  			     void *data, enum data_mode data_mode)
  {
@@ -603,7 +603,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	switch (data_mode) {
  	case DATA_MODE_SLAB:
  		kmem_cache_free(DM_BUFIO_CACHE(c), data);
-@@ -369,6 +377,7 @@ static struct dm_buffer *alloc_buffer(st
+@@ -391,6 +399,7 @@ static struct dm_buffer *alloc_buffer(st
  	struct dm_buffer *b = kmalloc(sizeof(struct dm_buffer) + c->aux_size,
  				      gfp_mask);
  
@@ -611,7 +611,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (!b)
  		return NULL;
  
-@@ -392,6 +401,7 @@ static void free_buffer(struct dm_buffer
+@@ -414,6 +423,7 @@ static void free_buffer(struct dm_buffer
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -619,7 +619,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	adjust_total_allocated(b->data_mode, -(long)c->block_size);
  
  	free_buffer_data(c, b->data, b->data_mode);
-@@ -405,6 +415,7 @@ static void __link_buffer(struct dm_buff
+@@ -427,6 +437,7 @@ static void __link_buffer(struct dm_buff
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -627,7 +627,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	c->n_buffers[dirty]++;
  	b->block = block;
  	b->list_mode = dirty;
-@@ -420,6 +431,7 @@ static void __unlink_buffer(struct dm_bu
+@@ -442,6 +453,7 @@ static void __unlink_buffer(struct dm_bu
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -635,7 +635,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(!c->n_buffers[b->list_mode]);
  
  	c->n_buffers[b->list_mode]--;
-@@ -434,6 +446,7 @@ static void __relink_lru(struct dm_buffe
+@@ -456,6 +468,7 @@ static void __relink_lru(struct dm_buffe
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -643,7 +643,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(!c->n_buffers[b->list_mode]);
  
  	c->n_buffers[b->list_mode]--;
-@@ -472,6 +485,7 @@ static void dmio_complete(unsigned long
+@@ -494,6 +507,7 @@ static void dmio_complete(unsigned long
  {
  	struct dm_buffer *b = context;
  
@@ -651,7 +651,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	b->bio.bi_end_io(&b->bio, error ? -EIO : 0);
  }
  
-@@ -490,6 +504,7 @@ static void use_dmio(struct dm_buffer *b
+@@ -512,6 +526,7 @@ static void use_dmio(struct dm_buffer *b
  		.sector = block << b->c->sectors_per_block_bits,
  		.count = b->c->block_size >> SECTOR_SHIFT,
  	};
@@ -659,7 +659,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  
  	if (b->data_mode != DATA_MODE_VMALLOC) {
  		io_req.mem.type = DM_IO_KMEM;
-@@ -512,6 +527,7 @@ static void use_inline_bio(struct dm_buf
+@@ -534,6 +549,7 @@ static void use_inline_bio(struct dm_buf
  	char *ptr;
  	int len;
  
@@ -667,7 +667,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	bio_init(&b->bio);
  	b->bio.bi_io_vec = b->bio_vec;
  	b->bio.bi_max_vecs = DM_BUFIO_INLINE_VECS;
-@@ -550,6 +566,7 @@ static void use_inline_bio(struct dm_buf
+@@ -572,6 +588,7 @@ static void use_inline_bio(struct dm_buf
  static void submit_io(struct dm_buffer *b, int rw, sector_t block,
  		      bio_end_io_t *end_io)
  {
@@ -675,7 +675,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (rw == WRITE && b->c->write_callback)
  		b->c->write_callback(b);
  
-@@ -574,6 +591,7 @@ static void write_endio(struct bio *bio,
+@@ -596,6 +613,7 @@ static void write_endio(struct bio *bio,
  {
  	struct dm_buffer *b = container_of(bio, struct dm_buffer, bio);
  
@@ -683,7 +683,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	b->write_error = error;
  	if (unlikely(error)) {
  		struct dm_bufio_client *c = b->c;
-@@ -594,6 +612,7 @@ static void write_endio(struct bio *bio,
+@@ -616,6 +634,7 @@ static void write_endio(struct bio *bio,
   */
  static int do_io_schedule(void *word)
  {
@@ -691,7 +691,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	io_schedule();
  
  	return 0;
-@@ -610,6 +629,7 @@ static int do_io_schedule(void *word)
+@@ -632,6 +651,7 @@ static int do_io_schedule(void *word)
   */
  static void __write_dirty_buffer(struct dm_buffer *b)
  {
@@ -699,7 +699,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (!test_bit(B_DIRTY, &b->state))
  		return;
  
-@@ -627,6 +647,7 @@ static void __write_dirty_buffer(struct
+@@ -649,6 +669,7 @@ static void __write_dirty_buffer(struct
   */
  static void __make_buffer_clean(struct dm_buffer *b)
  {
@@ -707,7 +707,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(b->hold_count);
  
  	if (!b->state)	/* fast case */
-@@ -645,6 +666,7 @@ static struct dm_buffer *__get_unclaimed
+@@ -667,6 +688,7 @@ static struct dm_buffer *__get_unclaimed
  {
  	struct dm_buffer *b;
  
@@ -715,7 +715,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	list_for_each_entry_reverse(b, &c->lru[LIST_CLEAN], lru_list) {
  		BUG_ON(test_bit(B_WRITING, &b->state));
  		BUG_ON(test_bit(B_DIRTY, &b->state));
-@@ -681,6 +703,7 @@ static struct dm_buffer *__get_unclaimed
+@@ -703,6 +725,7 @@ static struct dm_buffer *__get_unclaimed
  static void __wait_for_free_buffer(struct dm_bufio_client *c)
  {
  	DECLARE_WAITQUEUE(wait, current);
@@ -723,7 +723,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  
  	add_wait_queue(&c->free_buffer_wait, &wait);
  	set_task_state(current, TASK_UNINTERRUPTIBLE);
-@@ -711,6 +734,7 @@ static struct dm_buffer *__alloc_buffer_
+@@ -733,6 +756,7 @@ static struct dm_buffer *__alloc_buffer_
  {
  	struct dm_buffer *b;
  
@@ -731,7 +731,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	/*
  	 * dm-bufio is resistant to allocation failures (it just keeps
  	 * one buffer reserved in cases all the allocations fail).
-@@ -752,7 +776,9 @@ static struct dm_buffer *__alloc_buffer_
+@@ -774,7 +798,9 @@ static struct dm_buffer *__alloc_buffer_
  
  static struct dm_buffer *__alloc_buffer_wait(struct dm_bufio_client *c, enum new_flag nf)
  {
@@ -742,7 +742,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  
  	if (!b)
  		return NULL;
-@@ -770,6 +796,7 @@ static void __free_buffer_wake(struct dm
+@@ -792,6 +818,7 @@ static void __free_buffer_wake(struct dm
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -750,7 +750,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (!c->need_reserved_buffers)
  		free_buffer(b);
  	else {
-@@ -784,6 +811,7 @@ static void __write_dirty_buffers_async(
+@@ -806,6 +833,7 @@ static void __write_dirty_buffers_async(
  {
  	struct dm_buffer *b, *tmp;
  
@@ -758,7 +758,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	list_for_each_entry_safe_reverse(b, tmp, &c->lru[LIST_DIRTY], lru_list) {
  		BUG_ON(test_bit(B_READING, &b->state));
  
-@@ -810,6 +838,7 @@ static void __get_memory_limit(struct dm
+@@ -832,6 +860,7 @@ static void __get_memory_limit(struct dm
  {
  	unsigned long buffers;
  
@@ -766,7 +766,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (ACCESS_ONCE(dm_bufio_cache_size) != dm_bufio_cache_size_latch) {
  		mutex_lock(&dm_bufio_clients_lock);
  		__cache_size_refresh();
-@@ -835,6 +864,7 @@ static void __check_watermark(struct dm_
+@@ -857,6 +886,7 @@ static void __check_watermark(struct dm_
  {
  	unsigned long threshold_buffers, limit_buffers;
  
@@ -774,7 +774,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	__get_memory_limit(c, &threshold_buffers, &limit_buffers);
  
  	while (c->n_buffers[LIST_CLEAN] + c->n_buffers[LIST_DIRTY] >
-@@ -860,6 +890,7 @@ static struct dm_buffer *__find(struct d
+@@ -882,6 +912,7 @@ static struct dm_buffer *__find(struct d
  {
  	struct dm_buffer *b;
  
@@ -782,7 +782,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	hlist_for_each_entry(b, &c->cache_hash[DM_BUFIO_HASH(block)],
  			     hash_list) {
  		dm_bufio_cond_resched();
-@@ -879,6 +910,7 @@ static struct dm_buffer *__bufio_new(str
+@@ -901,6 +932,7 @@ static struct dm_buffer *__bufio_new(str
  {
  	struct dm_buffer *b, *new_b = NULL;
  
@@ -790,7 +790,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	*need_submit = 0;
  
  	b = __find(c, block);
-@@ -947,6 +979,7 @@ static void read_endio(struct bio *bio,
+@@ -969,6 +1001,7 @@ static void read_endio(struct bio *bio,
  {
  	struct dm_buffer *b = container_of(bio, struct dm_buffer, bio);
  
@@ -798,7 +798,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	b->read_error = error;
  
  	BUG_ON(!test_bit(B_READING, &b->state));
-@@ -970,6 +1003,7 @@ static void *new_read(struct dm_bufio_cl
+@@ -992,6 +1025,7 @@ static void *new_read(struct dm_bufio_cl
  	int need_submit;
  	struct dm_buffer *b;
  
@@ -806,7 +806,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	dm_bufio_lock(c);
  	b = __bufio_new(c, block, nf, &need_submit);
  	dm_bufio_unlock(c);
-@@ -998,6 +1032,7 @@ static void *new_read(struct dm_bufio_cl
+@@ -1020,6 +1054,7 @@ static void *new_read(struct dm_bufio_cl
  void *dm_bufio_get(struct dm_bufio_client *c, sector_t block,
  		   struct dm_buffer **bp)
  {
@@ -814,7 +814,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	return new_read(c, block, NF_GET, bp);
  }
  EXPORT_SYMBOL_GPL(dm_bufio_get);
-@@ -1005,6 +1040,7 @@ EXPORT_SYMBOL_GPL(dm_bufio_get);
+@@ -1027,6 +1062,7 @@ EXPORT_SYMBOL_GPL(dm_bufio_get);
  void *dm_bufio_read(struct dm_bufio_client *c, sector_t block,
  		    struct dm_buffer **bp)
  {
@@ -822,7 +822,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(dm_bufio_in_request());
  
  	return new_read(c, block, NF_READ, bp);
-@@ -1014,6 +1050,7 @@ EXPORT_SYMBOL_GPL(dm_bufio_read);
+@@ -1036,6 +1072,7 @@ EXPORT_SYMBOL_GPL(dm_bufio_read);
  void *dm_bufio_new(struct dm_bufio_client *c, sector_t block,
  		   struct dm_buffer **bp)
  {
@@ -830,7 +830,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(dm_bufio_in_request());
  
  	return new_read(c, block, NF_FRESH, bp);
-@@ -1027,6 +1064,7 @@ void dm_bufio_prefetch(struct dm_bufio_c
+@@ -1049,6 +1086,7 @@ void dm_bufio_prefetch(struct dm_bufio_c
  
  	BUG_ON(dm_bufio_in_request());
  
@@ -838,7 +838,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	blk_start_plug(&plug);
  	dm_bufio_lock(c);
  
-@@ -1061,6 +1099,7 @@ void dm_bufio_release(struct dm_buffer *
+@@ -1083,6 +1121,7 @@ void dm_bufio_release(struct dm_buffer *
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -846,7 +846,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	dm_bufio_lock(c);
  
  	BUG_ON(!b->hold_count);
-@@ -1091,6 +1130,7 @@ void dm_bufio_mark_buffer_dirty(struct d
+@@ -1113,6 +1152,7 @@ void dm_bufio_mark_buffer_dirty(struct d
  {
  	struct dm_bufio_client *c = b->c;
  
@@ -854,7 +854,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	dm_bufio_lock(c);
  
  	BUG_ON(test_bit(B_READING, &b->state));
-@@ -1104,6 +1144,7 @@ EXPORT_SYMBOL_GPL(dm_bufio_mark_buffer_d
+@@ -1126,6 +1166,7 @@ EXPORT_SYMBOL_GPL(dm_bufio_mark_buffer_d
  
  void dm_bufio_write_dirty_buffers_async(struct dm_bufio_client *c)
  {
@@ -862,7 +862,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(dm_bufio_in_request());
  
  	dm_bufio_lock(c);
-@@ -1125,6 +1166,7 @@ int dm_bufio_write_dirty_buffers(struct
+@@ -1147,6 +1188,7 @@ int dm_bufio_write_dirty_buffers(struct
  	unsigned long buffers_processed = 0;
  	struct dm_buffer *b, *tmp;
  
@@ -870,7 +870,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	dm_bufio_lock(c);
  	__write_dirty_buffers_async(c, 0);
  
-@@ -1205,6 +1247,7 @@ int dm_bufio_issue_flush(struct dm_bufio
+@@ -1227,6 +1269,7 @@ int dm_bufio_issue_flush(struct dm_bufio
  		.count = 0,
  	};
  
@@ -878,7 +878,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(dm_bufio_in_request());
  
  	return dm_io(&io_req, 1, &io_reg, NULL);
-@@ -1228,6 +1271,7 @@ void dm_bufio_release_move(struct dm_buf
+@@ -1250,6 +1293,7 @@ void dm_bufio_release_move(struct dm_buf
  	struct dm_bufio_client *c = b->c;
  	struct dm_buffer *new;
  
@@ -886,7 +886,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(dm_bufio_in_request());
  
  	dm_bufio_lock(c);
-@@ -1287,12 +1331,14 @@ EXPORT_SYMBOL_GPL(dm_bufio_release_move)
+@@ -1309,12 +1353,14 @@ EXPORT_SYMBOL_GPL(dm_bufio_release_move)
  
  unsigned dm_bufio_get_block_size(struct dm_bufio_client *c)
  {
@@ -901,7 +901,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	return i_size_read(c->bdev->bd_inode) >>
  			   (SECTOR_SHIFT + c->sectors_per_block_bits);
  }
-@@ -1300,24 +1346,28 @@ EXPORT_SYMBOL_GPL(dm_bufio_get_device_si
+@@ -1322,24 +1368,28 @@ EXPORT_SYMBOL_GPL(dm_bufio_get_device_si
  
  sector_t dm_bufio_get_block_number(struct dm_buffer *b)
  {
@@ -930,7 +930,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	return b->c;
  }
  EXPORT_SYMBOL_GPL(dm_bufio_get_client);
-@@ -1327,6 +1377,7 @@ static void drop_buffers(struct dm_bufio
+@@ -1349,6 +1399,7 @@ static void drop_buffers(struct dm_bufio
  	struct dm_buffer *b;
  	int i;
  
@@ -938,7 +938,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(dm_bufio_in_request());
  
  	/*
-@@ -1359,6 +1410,7 @@ static void drop_buffers(struct dm_bufio
+@@ -1381,6 +1432,7 @@ static void drop_buffers(struct dm_bufio
  static int __cleanup_old_buffer(struct dm_buffer *b, gfp_t gfp,
  				unsigned long max_jiffies)
  {
@@ -946,7 +946,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (jiffies - b->last_accessed < max_jiffies)
  		return 1;
  
-@@ -1385,6 +1437,7 @@ static void __scan(struct dm_bufio_clien
+@@ -1407,6 +1459,7 @@ static void __scan(struct dm_bufio_clien
  	int l;
  	struct dm_buffer *b, *tmp;
  
@@ -954,7 +954,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	for (l = 0; l < LIST_SIZE; l++) {
  		list_for_each_entry_safe_reverse(b, tmp, &c->lru[l], lru_list)
  			if (!__cleanup_old_buffer(b, sc->gfp_mask, 0) &&
-@@ -1401,6 +1454,7 @@ static int shrink(struct shrinker *shrin
+@@ -1423,6 +1476,7 @@ static int shrink(struct shrinker *shrin
  	unsigned long r;
  	unsigned long nr_to_scan = sc->nr_to_scan;
  
@@ -962,7 +962,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (sc->gfp_mask & __GFP_IO)
  		dm_bufio_lock(c);
  	else if (!dm_bufio_trylock(c))
-@@ -1430,6 +1484,7 @@ struct dm_bufio_client *dm_bufio_client_
+@@ -1452,6 +1506,7 @@ struct dm_bufio_client *dm_bufio_client_
  	struct dm_bufio_client *c;
  	unsigned i;
  
@@ -970,7 +970,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	BUG_ON(block_size < 1 << SECTOR_SHIFT ||
  	       (block_size & (block_size - 1)));
  
-@@ -1550,6 +1605,7 @@ void dm_bufio_client_destroy(struct dm_b
+@@ -1572,6 +1627,7 @@ void dm_bufio_client_destroy(struct dm_b
  {
  	unsigned i;
  
@@ -978,7 +978,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	drop_buffers(c);
  
  	unregister_shrinker(&c->shrinker);
-@@ -1592,6 +1648,7 @@ static void cleanup_old_buffers(void)
+@@ -1614,6 +1670,7 @@ static void cleanup_old_buffers(void)
  	unsigned long max_age = ACCESS_ONCE(dm_bufio_max_age);
  	struct dm_bufio_client *c;
  
@@ -986,7 +986,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	if (max_age > ULONG_MAX / HZ)
  		max_age = ULONG_MAX / HZ;
  
-@@ -1620,6 +1677,7 @@ static struct delayed_work dm_bufio_work
+@@ -1642,6 +1699,7 @@ static struct delayed_work dm_bufio_work
  
  static void work_fn(struct work_struct *w)
  {
@@ -994,7 +994,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	cleanup_old_buffers();
  
  	queue_delayed_work(dm_bufio_wq, &dm_bufio_work,
-@@ -1638,6 +1696,7 @@ static int __init dm_bufio_init(void)
+@@ -1660,6 +1718,7 @@ static int __init dm_bufio_init(void)
  {
  	__u64 mem;
  
@@ -1002,7 +1002,7 @@ Index: linux-latency/drivers/md/dm-bufio.c
  	memset(&dm_bufio_caches, 0, sizeof dm_bufio_caches);
  	memset(&dm_bufio_cache_names, 0, sizeof dm_bufio_cache_names);
  
-@@ -1681,6 +1740,7 @@ static void __exit dm_bufio_exit(void)
+@@ -1703,6 +1762,7 @@ static void __exit dm_bufio_exit(void)
  	int bug = 0;
  	int i;
  
@@ -2818,7 +2818,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock(&_minor_lock);
  
  	md = bdev->bd_disk->private_data;
-@@ -343,6 +351,7 @@ static int dm_blk_close(struct gendisk *
+@@ -343,6 +351,7 @@ static void dm_blk_close(struct gendisk
  {
  	struct mapped_device *md = disk->private_data;
  
@@ -2826,7 +2826,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock(&_minor_lock);
  
  	atomic_dec(&md->open_count);
-@@ -355,6 +364,7 @@ static int dm_blk_close(struct gendisk *
+@@ -353,6 +362,7 @@ static void dm_blk_close(struct gendisk
  
  int dm_open_count(struct mapped_device *md)
  {
@@ -2834,7 +2834,7 @@ Index: linux-latency/drivers/md/dm.c
  	return atomic_read(&md->open_count);
  }
  
-@@ -365,6 +375,7 @@ int dm_lock_for_deletion(struct mapped_d
+@@ -363,6 +373,7 @@ int dm_lock_for_deletion(struct mapped_d
  {
  	int r = 0;
  
@@ -2842,7 +2842,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock(&_minor_lock);
  
  	if (dm_open_count(md))
-@@ -381,6 +392,7 @@ static int dm_blk_getgeo(struct block_de
+@@ -379,6 +390,7 @@ static int dm_blk_getgeo(struct block_de
  {
  	struct mapped_device *md = bdev->bd_disk->private_data;
  
@@ -2850,7 +2850,7 @@ Index: linux-latency/drivers/md/dm.c
  	return dm_get_geometry(md, geo);
  }
  
-@@ -392,6 +404,7 @@ static int dm_blk_ioctl(struct block_dev
+@@ -390,6 +402,7 @@ static int dm_blk_ioctl(struct block_dev
  	struct dm_target *tgt;
  	int r = -ENOTTY;
  
@@ -2858,7 +2858,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!map || !dm_table_get_size(map))
  		goto out;
  
-@@ -417,32 +430,38 @@ out:
+@@ -415,32 +428,38 @@ out:
  
  static struct dm_io *alloc_io(struct mapped_device *md)
  {
@@ -2897,7 +2897,7 @@ Index: linux-latency/drivers/md/dm.c
  	return atomic_read(&md->pending[READ]) +
  	       atomic_read(&md->pending[WRITE]);
  }
-@@ -453,6 +472,7 @@ static void start_io_acct(struct dm_io *
+@@ -451,6 +470,7 @@ static void start_io_acct(struct dm_io *
  	int cpu;
  	int rw = bio_data_dir(io->bio);
  
@@ -2905,7 +2905,7 @@ Index: linux-latency/drivers/md/dm.c
  	io->start_time = jiffies;
  
  	cpu = part_stat_lock();
-@@ -470,6 +490,7 @@ static void end_io_acct(struct dm_io *io
+@@ -468,6 +488,7 @@ static void end_io_acct(struct dm_io *io
  	int pending, cpu;
  	int rw = bio_data_dir(bio);
  
@@ -2913,7 +2913,7 @@ Index: linux-latency/drivers/md/dm.c
  	cpu = part_stat_lock();
  	part_round_stats(cpu, &dm_disk(md)->part0);
  	part_stat_add(cpu, &dm_disk(md)->part0, ticks[rw], duration);
-@@ -495,6 +516,7 @@ static void queue_io(struct mapped_devic
+@@ -493,6 +514,7 @@ static void queue_io(struct mapped_devic
  {
  	unsigned long flags;
  
@@ -2921,7 +2921,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock_irqsave(&md->deferred_lock, flags);
  	bio_list_add(&md->deferred, bio);
  	spin_unlock_irqrestore(&md->deferred_lock, flags);
-@@ -511,6 +533,7 @@ struct dm_table *dm_get_live_table(struc
+@@ -509,6 +531,7 @@ struct dm_table *dm_get_live_table(struc
  	struct dm_table *t;
  	unsigned long flags;
  
@@ -2929,7 +2929,7 @@ Index: linux-latency/drivers/md/dm.c
  	read_lock_irqsave(&md->map_lock, flags);
  	t = md->map;
  	if (t)
-@@ -525,6 +548,7 @@ struct dm_table *dm_get_live_table(struc
+@@ -523,6 +546,7 @@ struct dm_table *dm_get_live_table(struc
   */
  int dm_get_geometry(struct mapped_device *md, struct hd_geometry *geo)
  {
@@ -2937,7 +2937,7 @@ Index: linux-latency/drivers/md/dm.c
  	*geo = md->geometry;
  
  	return 0;
-@@ -537,6 +561,7 @@ int dm_set_geometry(struct mapped_device
+@@ -535,6 +559,7 @@ int dm_set_geometry(struct mapped_device
  {
  	sector_t sz = (sector_t)geo->cylinders * geo->heads * geo->sectors;
  
@@ -2945,7 +2945,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (geo->start > sz) {
  		DMWARN("Start sector is beyond the geometry limits.");
  		return -EINVAL;
-@@ -558,6 +583,7 @@ int dm_set_geometry(struct mapped_device
+@@ -556,6 +581,7 @@ int dm_set_geometry(struct mapped_device
  
  static int __noflush_suspending(struct mapped_device *md)
  {
@@ -2953,7 +2953,7 @@ Index: linux-latency/drivers/md/dm.c
  	return test_bit(DMF_NOFLUSH_SUSPENDING, &md->flags);
  }
  
-@@ -572,6 +598,7 @@ static void dec_pending(struct dm_io *io
+@@ -570,6 +596,7 @@ static void dec_pending(struct dm_io *io
  	struct bio *bio;
  	struct mapped_device *md = io->md;
  
@@ -2961,7 +2961,7 @@ Index: linux-latency/drivers/md/dm.c
  	/* Push-back supersedes any I/O errors */
  	if (unlikely(error)) {
  		spin_lock_irqsave(&io->endio_lock, flags);
-@@ -624,6 +651,7 @@ static void clone_endio(struct bio *bio,
+@@ -623,6 +650,7 @@ static void clone_endio(struct bio *bio,
  	struct mapped_device *md = tio->io->md;
  	dm_endio_fn endio = tio->ti->type->end_io;
  
@@ -2969,7 +2969,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!bio_flagged(bio, BIO_UPTODATE) && !error)
  		error = -EIO;
  
-@@ -658,6 +686,7 @@ static void end_clone_bio(struct bio *cl
+@@ -657,6 +685,7 @@ static void end_clone_bio(struct bio *cl
  	struct bio *bio = info->orig;
  	unsigned int nr_bytes = info->orig->bi_size;
  
@@ -2977,7 +2977,7 @@ Index: linux-latency/drivers/md/dm.c
  	bio_put(clone);
  
  	if (tio->error)
-@@ -705,6 +734,7 @@ static void end_clone_bio(struct bio *cl
+@@ -704,6 +733,7 @@ static void end_clone_bio(struct bio *cl
   */
  static void rq_completed(struct mapped_device *md, int rw, int run_queue)
  {
@@ -2985,7 +2985,7 @@ Index: linux-latency/drivers/md/dm.c
  	atomic_dec(&md->pending[rw]);
  
  	/* nudge anyone waiting on suspend queue */
-@@ -730,6 +760,7 @@ static void free_rq_clone(struct request
+@@ -729,6 +759,7 @@ static void free_rq_clone(struct request
  {
  	struct dm_rq_target_io *tio = clone->end_io_data;
  
@@ -2993,7 +2993,7 @@ Index: linux-latency/drivers/md/dm.c
  	blk_rq_unprep_clone(clone);
  	free_rq_tio(tio);
  }
-@@ -745,6 +776,7 @@ static void dm_end_request(struct reques
+@@ -744,6 +775,7 @@ static void dm_end_request(struct reques
  	struct mapped_device *md = tio->md;
  	struct request *rq = tio->orig;
  
@@ -3001,7 +3001,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (rq->cmd_type == REQ_TYPE_BLOCK_PC) {
  		rq->errors = clone->errors;
  		rq->resid_len = clone->resid_len;
-@@ -767,6 +799,7 @@ static void dm_unprep_request(struct req
+@@ -766,6 +798,7 @@ static void dm_unprep_request(struct req
  {
  	struct request *clone = rq->special;
  
@@ -3009,7 +3009,7 @@ Index: linux-latency/drivers/md/dm.c
  	rq->special = NULL;
  	rq->cmd_flags &= ~REQ_DONTPREP;
  
-@@ -785,6 +818,7 @@ void dm_requeue_unmapped_request(struct
+@@ -784,6 +817,7 @@ void dm_requeue_unmapped_request(struct
  	struct request_queue *q = rq->q;
  	unsigned long flags;
  
@@ -3017,7 +3017,7 @@ Index: linux-latency/drivers/md/dm.c
  	dm_unprep_request(rq);
  
  	spin_lock_irqsave(q->queue_lock, flags);
-@@ -797,6 +831,7 @@ EXPORT_SYMBOL_GPL(dm_requeue_unmapped_re
+@@ -796,6 +830,7 @@ EXPORT_SYMBOL_GPL(dm_requeue_unmapped_re
  
  static void __stop_queue(struct request_queue *q)
  {
@@ -3025,7 +3025,7 @@ Index: linux-latency/drivers/md/dm.c
  	blk_stop_queue(q);
  }
  
-@@ -804,6 +839,7 @@ static void stop_queue(struct request_qu
+@@ -803,6 +838,7 @@ static void stop_queue(struct request_qu
  {
  	unsigned long flags;
  
@@ -3033,7 +3033,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock_irqsave(q->queue_lock, flags);
  	__stop_queue(q);
  	spin_unlock_irqrestore(q->queue_lock, flags);
-@@ -811,6 +847,7 @@ static void stop_queue(struct request_qu
+@@ -810,6 +846,7 @@ static void stop_queue(struct request_qu
  
  static void __start_queue(struct request_queue *q)
  {
@@ -3041,7 +3041,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (blk_queue_stopped(q))
  		blk_start_queue(q);
  }
-@@ -819,6 +856,7 @@ static void start_queue(struct request_q
+@@ -818,6 +855,7 @@ static void start_queue(struct request_q
  {
  	unsigned long flags;
  
@@ -3049,7 +3049,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock_irqsave(q->queue_lock, flags);
  	__start_queue(q);
  	spin_unlock_irqrestore(q->queue_lock, flags);
-@@ -830,6 +868,7 @@ static void dm_done(struct request *clon
+@@ -829,6 +867,7 @@ static void dm_done(struct request *clon
  	struct dm_rq_target_io *tio = clone->end_io_data;
  	dm_request_endio_fn rq_end_io = NULL;
  
@@ -3057,7 +3057,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (tio->ti) {
  		rq_end_io = tio->ti->type->rq_end_io;
  
-@@ -861,6 +900,7 @@ static void dm_softirq_done(struct reque
+@@ -860,6 +899,7 @@ static void dm_softirq_done(struct reque
  	struct request *clone = rq->completion_data;
  	struct dm_rq_target_io *tio = clone->end_io_data;
  
@@ -3065,7 +3065,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (rq->cmd_flags & REQ_FAILED)
  		mapped = false;
  
-@@ -876,6 +916,7 @@ static void dm_complete_request(struct r
+@@ -875,6 +915,7 @@ static void dm_complete_request(struct r
  	struct dm_rq_target_io *tio = clone->end_io_data;
  	struct request *rq = tio->orig;
  
@@ -3073,7 +3073,7 @@ Index: linux-latency/drivers/md/dm.c
  	tio->error = error;
  	rq->completion_data = clone;
  	blk_complete_request(rq);
-@@ -891,6 +932,7 @@ void dm_kill_unmapped_request(struct req
+@@ -890,6 +931,7 @@ void dm_kill_unmapped_request(struct req
  {
  	struct dm_rq_target_io *tio = clone->end_io_data;
  	struct request *rq = tio->orig;
@@ -3081,7 +3081,7 @@ Index: linux-latency/drivers/md/dm.c
  
  	rq->cmd_flags |= REQ_FAILED;
  	dm_complete_request(clone, error);
-@@ -902,6 +944,7 @@ EXPORT_SYMBOL_GPL(dm_kill_unmapped_reque
+@@ -901,6 +943,7 @@ EXPORT_SYMBOL_GPL(dm_kill_unmapped_reque
   */
  static void end_clone_request(struct request *clone, int error)
  {
@@ -3089,7 +3089,7 @@ Index: linux-latency/drivers/md/dm.c
  	/*
  	 * For just cleaning up the information of the queue in which
  	 * the clone was dispatched.
-@@ -928,6 +971,7 @@ static void end_clone_request(struct req
+@@ -927,6 +970,7 @@ static void end_clone_request(struct req
  static sector_t max_io_len_target_boundary(sector_t sector, struct dm_target *ti)
  {
  	sector_t target_offset = dm_target_offset(ti, sector);
@@ -3097,7 +3097,7 @@ Index: linux-latency/drivers/md/dm.c
  
  	return ti->len - target_offset;
  }
-@@ -937,6 +981,7 @@ static sector_t max_io_len(sector_t sect
+@@ -936,6 +980,7 @@ static sector_t max_io_len(sector_t sect
  	sector_t len = max_io_len_target_boundary(sector, ti);
  	sector_t offset, max_len;
  
@@ -3105,7 +3105,7 @@ Index: linux-latency/drivers/md/dm.c
  	/*
  	 * Does the target need to split even further?
  	 */
-@@ -957,6 +1002,7 @@ static sector_t max_io_len(sector_t sect
+@@ -956,6 +1001,7 @@ static sector_t max_io_len(sector_t sect
  
  int dm_set_target_max_io_len(struct dm_target *ti, sector_t len)
  {
@@ -3113,7 +3113,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (len > UINT_MAX) {
  		DMERR("Specified maximum size of target IO (%llu) exceeds limit (%u)",
  		      (unsigned long long)len, UINT_MAX);
-@@ -978,6 +1024,7 @@ static void __map_bio(struct dm_target_i
+@@ -977,6 +1023,7 @@ static void __map_bio(struct dm_target_i
  	struct bio *clone = &tio->clone;
  	struct dm_target *ti = tio->ti;
  
@@ -3121,7 +3121,7 @@ Index: linux-latency/drivers/md/dm.c
  	clone->bi_end_io = clone_endio;
  	clone->bi_private = tio;
  
-@@ -1025,6 +1072,7 @@ static void bio_setup_sector(struct bio
+@@ -1024,6 +1071,7 @@ static void bio_setup_sector(struct bio
  
  static void bio_setup_bv(struct bio *bio, unsigned short idx, unsigned short bv_count)
  {
@@ -3129,7 +3129,7 @@ Index: linux-latency/drivers/md/dm.c
  	bio->bi_idx = idx;
  	bio->bi_vcnt = idx + bv_count;
  	bio->bi_flags &= ~(1 << BIO_SEG_VALID);
-@@ -1034,6 +1082,7 @@ static void clone_bio_integrity(struct b
+@@ -1033,6 +1081,7 @@ static void clone_bio_integrity(struct b
  				unsigned short idx, unsigned len, unsigned offset,
  				unsigned trim)
  {
@@ -3137,7 +3137,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!bio_integrity(bio))
  		return;
  
-@@ -1053,6 +1102,7 @@ static void clone_split_bio(struct dm_ta
+@@ -1052,6 +1101,7 @@ static void clone_split_bio(struct dm_ta
  	struct bio *clone = &tio->clone;
  	struct bio_vec *bv = bio->bi_io_vec + idx;
  
@@ -3145,7 +3145,7 @@ Index: linux-latency/drivers/md/dm.c
  	*clone->bi_io_vec = *bv;
  
  	bio_setup_sector(clone, sector, len);
-@@ -1077,6 +1127,7 @@ static void clone_bio(struct dm_target_i
+@@ -1076,6 +1126,7 @@ static void clone_bio(struct dm_target_i
  	struct bio *clone = &tio->clone;
  	unsigned trim = 0;
  
@@ -3153,7 +3153,7 @@ Index: linux-latency/drivers/md/dm.c
  	__bio_clone(clone, bio);
  	bio_setup_sector(clone, sector, len);
  	bio_setup_bv(clone, idx, bv_count);
-@@ -1093,6 +1144,7 @@ static struct dm_target_io *alloc_tio(st
+@@ -1092,6 +1143,7 @@ static struct dm_target_io *alloc_tio(st
  	struct dm_target_io *tio;
  	struct bio *clone;
  
@@ -3161,7 +3161,7 @@ Index: linux-latency/drivers/md/dm.c
  	clone = bio_alloc_bioset(GFP_NOIO, nr_iovecs, ci->md->bs);
  	tio = container_of(clone, struct dm_target_io, clone);
  
-@@ -1111,6 +1163,7 @@ static void __clone_and_map_simple_bio(s
+@@ -1110,6 +1162,7 @@ static void __clone_and_map_simple_bio(s
  	struct dm_target_io *tio = alloc_tio(ci, ti, ci->bio->bi_max_vecs, target_bio_nr);
  	struct bio *clone = &tio->clone;
  
@@ -3169,7 +3169,7 @@ Index: linux-latency/drivers/md/dm.c
  	/*
  	 * Discard requests require the bio's inline iovecs be initialized.
  	 * ci->bio->bi_max_vecs is BIO_INLINE_VECS anyway, for both flush
-@@ -1128,6 +1181,7 @@ static void __send_duplicate_bios(struct
+@@ -1127,6 +1180,7 @@ static void __send_duplicate_bios(struct
  {
  	unsigned target_bio_nr;
  
@@ -3177,7 +3177,7 @@ Index: linux-latency/drivers/md/dm.c
  	for (target_bio_nr = 0; target_bio_nr < num_bios; target_bio_nr++)
  		__clone_and_map_simple_bio(ci, ti, target_bio_nr, len);
  }
-@@ -1137,6 +1191,7 @@ static int __send_empty_flush(struct clo
+@@ -1136,6 +1190,7 @@ static int __send_empty_flush(struct clo
  	unsigned target_nr = 0;
  	struct dm_target *ti;
  
@@ -3185,7 +3185,7 @@ Index: linux-latency/drivers/md/dm.c
  	BUG_ON(bio_has_data(ci->bio));
  	while ((ti = dm_table_get_target(ci->map, target_nr++)))
  		__send_duplicate_bios(ci, ti, ti->num_flush_bios, 0);
-@@ -1155,6 +1210,7 @@ static void __clone_and_map_data_bio(str
+@@ -1154,6 +1209,7 @@ static void __clone_and_map_data_bio(str
  	unsigned target_bio_nr;
  	unsigned num_target_bios = 1;
  
@@ -3193,7 +3193,7 @@ Index: linux-latency/drivers/md/dm.c
  	/*
  	 * Does the target want to receive duplicate copies of the bio?
  	 */
-@@ -1175,11 +1231,13 @@ typedef unsigned (*get_num_bios_fn)(stru
+@@ -1174,11 +1230,13 @@ typedef unsigned (*get_num_bios_fn)(stru
  
  static unsigned get_num_discard_bios(struct dm_target *ti)
  {
@@ -3207,7 +3207,7 @@ Index: linux-latency/drivers/md/dm.c
  	return ti->num_write_same_bios;
  }
  
-@@ -1187,6 +1245,7 @@ typedef bool (*is_split_required_fn)(str
+@@ -1186,6 +1244,7 @@ typedef bool (*is_split_required_fn)(str
  
  static bool is_split_required_for_discard(struct dm_target *ti)
  {
@@ -3215,7 +3215,7 @@ Index: linux-latency/drivers/md/dm.c
  	return ti->split_discard_bios;
  }
  
-@@ -1198,6 +1257,7 @@ static int __send_changing_extent_only(s
+@@ -1197,6 +1256,7 @@ static int __send_changing_extent_only(s
  	sector_t len;
  	unsigned num_bios;
  
@@ -3223,7 +3223,7 @@ Index: linux-latency/drivers/md/dm.c
  	do {
  		ti = dm_table_find_target(ci->map, ci->sector);
  		if (!dm_target_is_valid(ti))
-@@ -1228,12 +1288,14 @@ static int __send_changing_extent_only(s
+@@ -1227,12 +1287,14 @@ static int __send_changing_extent_only(s
  
  static int __send_discard(struct clone_info *ci)
  {
@@ -3238,7 +3238,7 @@ Index: linux-latency/drivers/md/dm.c
  	return __send_changing_extent_only(ci, get_num_write_same_bios, NULL);
  }
  
-@@ -1245,6 +1307,7 @@ static sector_t __len_within_target(stru
+@@ -1244,6 +1306,7 @@ static sector_t __len_within_target(stru
  	struct bio *bio = ci->bio;
  	sector_t bv_len, total_len = 0;
  
@@ -3246,7 +3246,7 @@ Index: linux-latency/drivers/md/dm.c
  	for (*idx = ci->idx; max && (*idx < bio->bi_vcnt); (*idx)++) {
  		bv_len = to_sector(bio->bi_io_vec[*idx].bv_len);
  
-@@ -1267,6 +1330,7 @@ static int __split_bvec_across_targets(s
+@@ -1266,6 +1329,7 @@ static int __split_bvec_across_targets(s
  	unsigned offset = 0;
  	sector_t len;
  
@@ -3254,7 +3254,7 @@ Index: linux-latency/drivers/md/dm.c
  	do {
  		if (offset) {
  			ti = dm_table_find_target(ci->map, ci->sector);
-@@ -1301,6 +1365,7 @@ static int __split_and_process_non_flush
+@@ -1300,6 +1364,7 @@ static int __split_and_process_non_flush
  	sector_t len, max;
  	int idx;
  
@@ -3262,7 +3262,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (unlikely(bio->bi_rw & REQ_DISCARD))
  		return __send_discard(ci);
  	else if (unlikely(bio->bi_rw & REQ_WRITE_SAME))
-@@ -1355,6 +1420,7 @@ static void __split_and_process_bio(stru
+@@ -1354,6 +1419,7 @@ static void __split_and_process_bio(stru
  	struct clone_info ci;
  	int error = 0;
  
@@ -3270,7 +3270,7 @@ Index: linux-latency/drivers/md/dm.c
  	ci.map = dm_get_live_table(md);
  	if (unlikely(!ci.map)) {
  		bio_io_error(bio);
-@@ -1403,6 +1469,7 @@ static int dm_merge_bvec(struct request_
+@@ -1402,6 +1468,7 @@ static int dm_merge_bvec(struct request_
  	sector_t max_sectors;
  	int max_size = 0;
  
@@ -3278,7 +3278,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (unlikely(!map))
  		goto out;
  
-@@ -1460,6 +1527,7 @@ static void _dm_request(struct request_q
+@@ -1459,6 +1526,7 @@ static void _dm_request(struct request_q
  	struct mapped_device *md = q->queuedata;
  	int cpu;
  
@@ -3286,7 +3286,7 @@ Index: linux-latency/drivers/md/dm.c
  	down_read(&md->io_lock);
  
  	cpu = part_stat_lock();
-@@ -1485,6 +1553,7 @@ static void _dm_request(struct request_q
+@@ -1484,6 +1552,7 @@ static void _dm_request(struct request_q
  
  static int dm_request_based(struct mapped_device *md)
  {
@@ -3294,7 +3294,7 @@ Index: linux-latency/drivers/md/dm.c
  	return blk_queue_stackable(md->queue);
  }
  
-@@ -1492,6 +1561,7 @@ static void dm_request(struct request_qu
+@@ -1491,6 +1560,7 @@ static void dm_request(struct request_qu
  {
  	struct mapped_device *md = q->queuedata;
  
@@ -3302,7 +3302,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (dm_request_based(md))
  		blk_queue_bio(q, bio);
  	else
-@@ -1502,6 +1572,7 @@ void dm_dispatch_request(struct request
+@@ -1501,6 +1571,7 @@ void dm_dispatch_request(struct request
  {
  	int r;
  
@@ -3310,7 +3310,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (blk_queue_io_stat(rq->q))
  		rq->cmd_flags |= REQ_IO_STAT;
  
-@@ -1519,6 +1590,7 @@ static int dm_rq_bio_constructor(struct
+@@ -1518,6 +1589,7 @@ static int dm_rq_bio_constructor(struct
  	struct dm_rq_clone_bio_info *info =
  		container_of(bio, struct dm_rq_clone_bio_info, clone);
  
@@ -3318,7 +3318,7 @@ Index: linux-latency/drivers/md/dm.c
  	info->orig = bio_orig;
  	info->tio = tio;
  	bio->bi_end_io = end_clone_bio;
-@@ -1532,6 +1604,7 @@ static int setup_clone(struct request *c
+@@ -1531,6 +1603,7 @@ static int setup_clone(struct request *c
  {
  	int r;
  
@@ -3326,7 +3326,7 @@ Index: linux-latency/drivers/md/dm.c
  	r = blk_rq_prep_clone(clone, rq, tio->md->bs, GFP_ATOMIC,
  			      dm_rq_bio_constructor, tio);
  	if (r)
-@@ -1553,6 +1626,7 @@ static struct request *clone_rq(struct r
+@@ -1552,6 +1625,7 @@ static struct request *clone_rq(struct r
  	struct request *clone;
  	struct dm_rq_target_io *tio;
  
@@ -3334,7 +3334,7 @@ Index: linux-latency/drivers/md/dm.c
  	tio = alloc_rq_tio(md, gfp_mask);
  	if (!tio)
  		return NULL;
-@@ -1581,6 +1655,7 @@ static int dm_prep_fn(struct request_que
+@@ -1580,6 +1654,7 @@ static int dm_prep_fn(struct request_que
  	struct mapped_device *md = q->queuedata;
  	struct request *clone;
  
@@ -3342,7 +3342,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (unlikely(rq->special)) {
  		DMWARN("Already has something in rq->special.");
  		return BLKPREP_KILL;
-@@ -1607,6 +1682,7 @@ static int map_request(struct dm_target
+@@ -1606,6 +1681,7 @@ static int map_request(struct dm_target
  	int r, requeued = 0;
  	struct dm_rq_target_io *tio = clone->end_io_data;
  
@@ -3350,7 +3350,7 @@ Index: linux-latency/drivers/md/dm.c
  	tio->ti = ti;
  	r = ti->type->map_rq(ti, clone, &tio->info);
  	switch (r) {
-@@ -1642,6 +1718,7 @@ static struct request *dm_start_request(
+@@ -1641,6 +1717,7 @@ static struct request *dm_start_request(
  {
  	struct request *clone;
  
@@ -3358,7 +3358,7 @@ Index: linux-latency/drivers/md/dm.c
  	blk_start_request(orig);
  	clone = orig->special;
  	atomic_inc(&md->pending[rq_data_dir(clone)]);
-@@ -1670,6 +1747,7 @@ static void dm_request_fn(struct request
+@@ -1669,6 +1746,7 @@ static void dm_request_fn(struct request
  	struct request *rq, *clone;
  	sector_t pos;
  
@@ -3366,7 +3366,7 @@ Index: linux-latency/drivers/md/dm.c
  	/*
  	 * For suspend, check blk_queue_stopped() and increment
  	 * ->pending within a single queue_lock not to increment the
-@@ -1725,6 +1803,7 @@ out:
+@@ -1724,6 +1802,7 @@ out:
  
  int dm_underlying_device_busy(struct request_queue *q)
  {
@@ -3374,7 +3374,7 @@ Index: linux-latency/drivers/md/dm.c
  	return blk_lld_busy(q);
  }
  EXPORT_SYMBOL_GPL(dm_underlying_device_busy);
-@@ -1735,6 +1814,7 @@ static int dm_lld_busy(struct request_qu
+@@ -1734,6 +1813,7 @@ static int dm_lld_busy(struct request_qu
  	struct mapped_device *md = q->queuedata;
  	struct dm_table *map = dm_get_live_table(md);
  
@@ -3382,7 +3382,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!map || test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags))
  		r = 1;
  	else
-@@ -1751,6 +1831,7 @@ static int dm_any_congested(void *conges
+@@ -1750,6 +1830,7 @@ static int dm_any_congested(void *conges
  	struct mapped_device *md = congested_data;
  	struct dm_table *map;
  
@@ -3390,7 +3390,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags)) {
  		map = dm_get_live_table(md);
  		if (map) {
-@@ -1776,6 +1857,7 @@ static int dm_any_congested(void *conges
+@@ -1775,6 +1856,7 @@ static int dm_any_congested(void *conges
   *---------------------------------------------------------------*/
  static void free_minor(int minor)
  {
@@ -3398,7 +3398,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock(&_minor_lock);
  	idr_remove(&_minor_idr, minor);
  	spin_unlock(&_minor_lock);
-@@ -1788,6 +1870,7 @@ static int specific_minor(int minor)
+@@ -1787,6 +1869,7 @@ static int specific_minor(int minor)
  {
  	int r;
  
@@ -3406,7 +3406,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (minor >= (1 << MINORBITS))
  		return -EINVAL;
  
-@@ -1807,6 +1890,7 @@ static int next_free_minor(int *minor)
+@@ -1806,6 +1889,7 @@ static int next_free_minor(int *minor)
  {
  	int r;
  
@@ -3414,7 +3414,7 @@ Index: linux-latency/drivers/md/dm.c
  	idr_preload(GFP_KERNEL);
  	spin_lock(&_minor_lock);
  
-@@ -1826,6 +1910,7 @@ static void dm_wq_work(struct work_struc
+@@ -1825,6 +1909,7 @@ static void dm_wq_work(struct work_struc
  
  static void dm_init_md_queue(struct mapped_device *md)
  {
@@ -3422,7 +3422,7 @@ Index: linux-latency/drivers/md/dm.c
  	/*
  	 * Request-based dm devices cannot be stacked on top of bio-based dm
  	 * devices.  The type of this dm device has not been decided yet.
-@@ -1854,6 +1939,7 @@ static struct mapped_device *alloc_dev(i
+@@ -1853,6 +1938,7 @@ static struct mapped_device *alloc_dev(i
  	struct mapped_device *md = kzalloc(sizeof(*md), GFP_KERNEL);
  	void *old_md;
  
@@ -3430,7 +3430,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!md) {
  		DMWARN("unable to allocate device, out of memory.");
  		return NULL;
-@@ -1952,6 +2038,7 @@ static void free_dev(struct mapped_devic
+@@ -1951,6 +2037,7 @@ static void free_dev(struct mapped_devic
  {
  	int minor = MINOR(disk_devt(md->disk));
  
@@ -3438,7 +3438,7 @@ Index: linux-latency/drivers/md/dm.c
  	unlock_fs(md);
  	bdput(md->bdev);
  	destroy_workqueue(md->wq);
-@@ -1977,6 +2064,7 @@ static void __bind_mempools(struct mappe
+@@ -1976,6 +2063,7 @@ static void __bind_mempools(struct mappe
  {
  	struct dm_md_mempools *p = dm_table_get_md_mempools(t);
  
@@ -3446,7 +3446,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (md->io_pool && md->bs) {
  		/* The md already has necessary mempools. */
  		if (dm_table_get_type(t) == DM_TYPE_BIO_BASED) {
-@@ -2021,6 +2109,7 @@ static void event_callback(void *context
+@@ -2020,6 +2108,7 @@ static void event_callback(void *context
  	LIST_HEAD(uevents);
  	struct mapped_device *md = (struct mapped_device *) context;
  
@@ -3454,7 +3454,7 @@ Index: linux-latency/drivers/md/dm.c
  	spin_lock_irqsave(&md->uevent_lock, flags);
  	list_splice_init(&md->uevent_list, &uevents);
  	spin_unlock_irqrestore(&md->uevent_lock, flags);
-@@ -2036,6 +2125,7 @@ static void event_callback(void *context
+@@ -2035,6 +2124,7 @@ static void event_callback(void *context
   */
  static void __set_size(struct mapped_device *md, sector_t size)
  {
@@ -3462,7 +3462,7 @@ Index: linux-latency/drivers/md/dm.c
  	set_capacity(md->disk, size);
  
  	i_size_write(md->bdev->bd_inode, (loff_t)size << SECTOR_SHIFT);
-@@ -2052,6 +2142,7 @@ int dm_queue_merge_is_compulsory(struct
+@@ -2051,6 +2141,7 @@ int dm_queue_merge_is_compulsory(struct
  {
  	struct mapped_device *dev_md;
  
@@ -3470,7 +3470,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!q->merge_bvec_fn)
  		return 0;
  
-@@ -2071,6 +2162,7 @@ static int dm_device_merge_is_compulsory
+@@ -2070,6 +2161,7 @@ static int dm_device_merge_is_compulsory
  	struct block_device *bdev = dev->bdev;
  	struct request_queue *q = bdev_get_queue(bdev);
  
@@ -3478,7 +3478,7 @@ Index: linux-latency/drivers/md/dm.c
  	return dm_queue_merge_is_compulsory(q);
  }
  
-@@ -2083,6 +2175,7 @@ static int dm_table_merge_is_optional(st
+@@ -2082,6 +2174,7 @@ static int dm_table_merge_is_optional(st
  	unsigned i = 0;
  	struct dm_target *ti;
  
@@ -3486,7 +3486,7 @@ Index: linux-latency/drivers/md/dm.c
  	while (i < dm_table_get_num_targets(table)) {
  		ti = dm_table_get_target(table, i++);
  
-@@ -2106,6 +2199,7 @@ static struct dm_table *__bind(struct ma
+@@ -2105,6 +2198,7 @@ static struct dm_table *__bind(struct ma
  	unsigned long flags;
  	int merge_is_optional;
  
@@ -3494,7 +3494,7 @@ Index: linux-latency/drivers/md/dm.c
  	size = dm_table_get_size(t);
  
  	/*
-@@ -2155,6 +2249,7 @@ static struct dm_table *__unbind(struct
+@@ -2154,6 +2248,7 @@ static struct dm_table *__unbind(struct
  	struct dm_table *map = md->map;
  	unsigned long flags;
  
@@ -3502,7 +3502,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!map)
  		return NULL;
  
-@@ -2173,6 +2268,7 @@ int dm_create(int minor, struct mapped_d
+@@ -2172,6 +2267,7 @@ int dm_create(int minor, struct mapped_d
  {
  	struct mapped_device *md;
  
@@ -3510,7 +3510,7 @@ Index: linux-latency/drivers/md/dm.c
  	md = alloc_dev(minor);
  	if (!md)
  		return -ENXIO;
-@@ -2189,26 +2285,31 @@ int dm_create(int minor, struct mapped_d
+@@ -2188,26 +2284,31 @@ int dm_create(int minor, struct mapped_d
   */
  void dm_lock_md_type(struct mapped_device *md)
  {
@@ -3542,7 +3542,7 @@ Index: linux-latency/drivers/md/dm.c
  	return md->immutable_target_type;
  }
  
-@@ -2219,6 +2320,7 @@ static int dm_init_request_based_queue(s
+@@ -2218,6 +2319,7 @@ static int dm_init_request_based_queue(s
  {
  	struct request_queue *q = NULL;
  
@@ -3550,7 +3550,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (md->queue->elevator)
  		return 1;
  
-@@ -2243,6 +2345,7 @@ static int dm_init_request_based_queue(s
+@@ -2242,6 +2344,7 @@ static int dm_init_request_based_queue(s
   */
  int dm_setup_md_queue(struct mapped_device *md)
  {
@@ -3558,7 +3558,7 @@ Index: linux-latency/drivers/md/dm.c
  	if ((dm_get_md_type(md) == DM_TYPE_REQUEST_BASED) &&
  	    !dm_init_request_based_queue(md)) {
  		DMWARN("Cannot initialize queue for request-based mapped device");
-@@ -2257,6 +2360,7 @@ static struct mapped_device *dm_find_md(
+@@ -2256,6 +2359,7 @@ static struct mapped_device *dm_find_md(
  	struct mapped_device *md;
  	unsigned minor = MINOR(dev);
  
@@ -3566,7 +3566,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (MAJOR(dev) != _major || minor >= (1 << MINORBITS))
  		return NULL;
  
-@@ -2280,6 +2384,7 @@ out:
+@@ -2279,6 +2383,7 @@ out:
  struct mapped_device *dm_get_md(dev_t dev)
  {
  	struct mapped_device *md = dm_find_md(dev);
@@ -3574,7 +3574,7 @@ Index: linux-latency/drivers/md/dm.c
  
  	if (md)
  		dm_get(md);
-@@ -2290,22 +2395,26 @@ EXPORT_SYMBOL_GPL(dm_get_md);
+@@ -2289,22 +2394,26 @@ EXPORT_SYMBOL_GPL(dm_get_md);
  
  void *dm_get_mdptr(struct mapped_device *md)
  {
@@ -3601,7 +3601,7 @@ Index: linux-latency/drivers/md/dm.c
  	return md->name;
  }
  EXPORT_SYMBOL_GPL(dm_device_name);
-@@ -2314,6 +2423,7 @@ static void __dm_destroy(struct mapped_d
+@@ -2313,6 +2422,7 @@ static void __dm_destroy(struct mapped_d
  {
  	struct dm_table *map;
  
@@ -3609,7 +3609,7 @@ Index: linux-latency/drivers/md/dm.c
  	might_sleep();
  
  	spin_lock(&_minor_lock);
-@@ -2348,16 +2458,19 @@ static void __dm_destroy(struct mapped_d
+@@ -2347,16 +2457,19 @@ static void __dm_destroy(struct mapped_d
  
  void dm_destroy(struct mapped_device *md)
  {
@@ -3629,7 +3629,7 @@ Index: linux-latency/drivers/md/dm.c
  	atomic_dec(&md->holders);
  }
  EXPORT_SYMBOL_GPL(dm_put);
-@@ -2367,6 +2480,7 @@ static int dm_wait_for_completion(struct
+@@ -2366,6 +2479,7 @@ static int dm_wait_for_completion(struct
  	int r = 0;
  	DECLARE_WAITQUEUE(wait, current);
  
@@ -3637,7 +3637,7 @@ Index: linux-latency/drivers/md/dm.c
  	add_wait_queue(&md->wait, &wait);
  
  	while (1) {
-@@ -2399,6 +2513,7 @@ static void dm_wq_work(struct work_struc
+@@ -2398,6 +2512,7 @@ static void dm_wq_work(struct work_struc
  						work);
  	struct bio *c;
  
@@ -3645,7 +3645,7 @@ Index: linux-latency/drivers/md/dm.c
  	down_read(&md->io_lock);
  
  	while (!test_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags)) {
-@@ -2424,6 +2539,7 @@ static void dm_wq_work(struct work_struc
+@@ -2423,6 +2538,7 @@ static void dm_wq_work(struct work_struc
  
  static void dm_queue_flush(struct mapped_device *md)
  {
@@ -3653,7 +3653,7 @@ Index: linux-latency/drivers/md/dm.c
  	clear_bit(DMF_BLOCK_IO_FOR_SUSPEND, &md->flags);
  	smp_mb__after_clear_bit();
  	queue_work(md->wq, &md->work);
-@@ -2438,6 +2554,7 @@ struct dm_table *dm_swap_table(struct ma
+@@ -2437,6 +2553,7 @@ struct dm_table *dm_swap_table(struct ma
  	struct queue_limits limits;
  	int r;
  
@@ -3661,7 +3661,7 @@ Index: linux-latency/drivers/md/dm.c
  	mutex_lock(&md->suspend_lock);
  
  	/* device must be suspended */
-@@ -2480,6 +2597,7 @@ static int lock_fs(struct mapped_device
+@@ -2479,6 +2596,7 @@ static int lock_fs(struct mapped_device
  {
  	int r;
  
@@ -3669,7 +3669,7 @@ Index: linux-latency/drivers/md/dm.c
  	WARN_ON(md->frozen_sb);
  
  	md->frozen_sb = freeze_bdev(md->bdev);
-@@ -2496,6 +2614,7 @@ static int lock_fs(struct mapped_device
+@@ -2495,6 +2613,7 @@ static int lock_fs(struct mapped_device
  
  static void unlock_fs(struct mapped_device *md)
  {
@@ -3677,7 +3677,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!test_bit(DMF_FROZEN, &md->flags))
  		return;
  
-@@ -2527,6 +2646,7 @@ int dm_suspend(struct mapped_device *md,
+@@ -2526,6 +2645,7 @@ int dm_suspend(struct mapped_device *md,
  	int do_lockfs = suspend_flags & DM_SUSPEND_LOCKFS_FLAG ? 1 : 0;
  	int noflush = suspend_flags & DM_SUSPEND_NOFLUSH_FLAG ? 1 : 0;
  
@@ -3685,7 +3685,7 @@ Index: linux-latency/drivers/md/dm.c
  	mutex_lock(&md->suspend_lock);
  
  	if (dm_suspended_md(md)) {
-@@ -2629,6 +2749,7 @@ int dm_resume(struct mapped_device *md)
+@@ -2628,6 +2748,7 @@ int dm_resume(struct mapped_device *md)
  	int r = -EINVAL;
  	struct dm_table *map = NULL;
  
@@ -3693,7 +3693,7 @@ Index: linux-latency/drivers/md/dm.c
  	mutex_lock(&md->suspend_lock);
  	if (!dm_suspended_md(md))
  		goto out;
-@@ -2672,6 +2793,7 @@ int dm_kobject_uevent(struct mapped_devi
+@@ -2671,6 +2792,7 @@ int dm_kobject_uevent(struct mapped_devi
  	char udev_cookie[DM_COOKIE_LENGTH];
  	char *envp[] = { udev_cookie, NULL };
  
@@ -3701,7 +3701,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!cookie)
  		return kobject_uevent(&disk_to_dev(md->disk)->kobj, action);
  	else {
-@@ -2684,16 +2806,19 @@ int dm_kobject_uevent(struct mapped_devi
+@@ -2683,16 +2805,19 @@ int dm_kobject_uevent(struct mapped_devi
  
  uint32_t dm_next_uevent_seq(struct mapped_device *md)
  {
@@ -3721,7 +3721,7 @@ Index: linux-latency/drivers/md/dm.c
  	return wait_event_interruptible(md->eventq,
  			(event_nr != atomic_read(&md->event_nr)));
  }
-@@ -2701,6 +2826,7 @@ int dm_wait_event(struct mapped_device *
+@@ -2700,6 +2825,7 @@ int dm_wait_event(struct mapped_device *
  void dm_uevent_add(struct mapped_device *md, struct list_head *elist)
  {
  	unsigned long flags;
@@ -3729,7 +3729,7 @@ Index: linux-latency/drivers/md/dm.c
  
  	spin_lock_irqsave(&md->uevent_lock, flags);
  	list_add(elist, &md->uevent_list);
-@@ -2713,11 +2839,13 @@ void dm_uevent_add(struct mapped_device
+@@ -2712,11 +2838,13 @@ void dm_uevent_add(struct mapped_device
   */
  struct gendisk *dm_disk(struct mapped_device *md)
  {
@@ -3743,7 +3743,7 @@ Index: linux-latency/drivers/md/dm.c
  	return &md->kobj;
  }
  
-@@ -2729,6 +2857,7 @@ struct mapped_device *dm_get_from_kobjec
+@@ -2728,6 +2856,7 @@ struct mapped_device *dm_get_from_kobjec
  {
  	struct mapped_device *md;
  
@@ -3751,7 +3751,7 @@ Index: linux-latency/drivers/md/dm.c
  	md = container_of(kobj, struct mapped_device, kobj);
  	if (&md->kobj != kobj)
  		return NULL;
-@@ -2743,17 +2872,20 @@ struct mapped_device *dm_get_from_kobjec
+@@ -2742,17 +2871,20 @@ struct mapped_device *dm_get_from_kobjec
  
  int dm_suspended_md(struct mapped_device *md)
  {
@@ -3772,7 +3772,7 @@ Index: linux-latency/drivers/md/dm.c
  	return __noflush_suspending(dm_table_get_md(ti->table));
  }
  EXPORT_SYMBOL_GPL(dm_noflush_suspending);
-@@ -2765,6 +2897,7 @@ struct dm_md_mempools *dm_alloc_md_mempo
+@@ -2764,6 +2896,7 @@ struct dm_md_mempools *dm_alloc_md_mempo
  	unsigned int pool_size;
  	unsigned int front_pad;
  
@@ -3780,7 +3780,7 @@ Index: linux-latency/drivers/md/dm.c
  	if (!pools)
  		return NULL;
  
-@@ -2802,6 +2935,7 @@ out:
+@@ -2801,6 +2934,7 @@ out:
  
  void dm_free_md_mempools(struct dm_md_mempools *pools)
  {
