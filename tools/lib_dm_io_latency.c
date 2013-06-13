@@ -58,6 +58,11 @@ struct latency_record {
 	unsigned long nr;
 };
 
+struct lat_prof {
+	int ms_fd;
+	int s_fd;
+};
+
 static int load_system_default_configs(int *latency_threshold,
 				int *latency_warning_nr)
 {
@@ -124,12 +129,15 @@ out:
 }
 
 
-static int open_dm_target_latency_profile(const char *target_name)
+static int open_dm_target_latency_profile(const char *target_name,
+					  struct lat_prof *prof)
 {
 	char *name;
 	char *ptr, *dev;
 	char path[512] = {0, };
-	int fd = -1;
+	int ms_fd = -1, s_fd = -1;
+	int ret = -1;
+	struct prof_fds;
 
 	name = strdup(target_name);
 	if (!name)
@@ -145,18 +153,32 @@ static int open_dm_target_latency_profile(const char *target_name)
 
 	dev = basename(ptr);
 	snprintf(path, sizeof(path), "/sys/block/%s/dm/io_latency_ms", dev);
-	fd = open(path, O_RDONLY);
+	ms_fd = open(path, O_RDONLY);
+	if (ms_fd < 0)
+		goto out;
+	snprintf(path, sizeof(path), "/sys/block/%s/dm/io_latency_s", dev);
+	s_fd = open(path, O_RDONLY);
+	if (s_fd < 0)
+		goto out;
+
+	prof->ms_fd = ms_fd;
+	prof->s_fd = s_fd;
+	ret = 0;
 
 out:
 	if (name)
 		free(name);
-	return fd;
+	return ret;
 }
 
-static void close_dm_target_latency_profile(int *fd)
+static void close_dm_target_latency_profile(struct lat_prof *prof)
 {
-	close(*fd);
-	*fd = -1;
+	if (prof->ms_fd >= 0)
+		close(prof->ms_fd);
+	if (prof->s_fd >= 0)
+		close(prof->s_fd);
+	prof->ms_fd = -1;
+	prof->s_fd = -1;
 }
 
 /* latency stats in format like:
@@ -164,11 +186,11 @@ static void close_dm_target_latency_profile(int *fd)
  *
  * we can use ':' in the format to determine number of record lines
  */
-static int load_dm_latency_stats(int fd,
+static int load_dm_latency_stats_ms(int fd,
 			  struct latency_record **records,
 			  unsigned long *levels)
 {
-	char buf[4096];
+	char buf[4096] = {0,};
 	char *start, *end, *ptr;
 	int i, ret;
 	int level_start, level_end;
@@ -240,6 +262,87 @@ out:
 	return ret;
 }
 
+/* latency stats in format like:
+ * 0-9(s):100
+ *
+ * we can use ':' in the format to determine number of record lines
+ */
+static int load_dm_latency_stats_s(int fd,
+			  struct latency_record **records,
+			  unsigned long *levels)
+{
+	char buf[4096] = {0,};
+	char *start, *end, *ptr;
+	int i, ret;
+	int level_start, level_end;
+	unsigned long nr;
+	
+
+	ret = read(fd, buf, sizeof(buf));
+	/* is file too large? */
+	if (ret == sizeof(buf)) {
+		ret = -1;
+		goto out;
+	}
+	
+	/* scan number of record lines */
+	ptr = buf;
+	i = 0;
+	while ((*ptr) && ((ptr - buf) < sizeof(buf))) {
+		start = strchr(ptr, ':');
+		if (!start)
+			break;
+		ptr = start + 1;
+		i ++;
+	}
+
+	if (i == 0) {
+		ret = -1;
+		goto out;
+	}
+
+	*levels = i;
+	*records = malloc(sizeof(struct latency_record) * i);
+	if ((*records) == NULL) {
+		ret = -1;
+		goto out;
+	}
+
+	start = buf;
+	i = 0;
+	while((*start) != '\0') {
+		end = start + 1;
+		while ((*end) && (*end) != '\n')
+			end ++;
+		if (!(*end))
+			break;
+
+		*end = '\0';
+		ret = sscanf(start, "%d-%d(s):%lu",
+			     &level_start, &level_end, &nr);
+#ifdef DEBUG
+		printf("%d-%d(s):%lu\n", level_start, level_end, nr);
+#endif
+		(*records)[i].start = level_start;
+		(*records)[i].length = level_end - level_start + 1;
+		(*records)[i].nr = nr;
+		i ++;
+		start = end + 1;
+	}
+
+	if (i != *(levels)) {
+		free(*records);
+		*records = NULL;
+		ret = -1;
+		goto out;
+	}
+
+	ret = 0;
+	
+out:
+	return ret;
+}
+
 /*
  * return 1, no threshold triggered
  *        0, latency threshold triggered
@@ -251,12 +354,15 @@ int is_dm_target_io_latency_ok(const char *target_name,
 {
 	int ret = -1;
 	int fd, i;
-	unsigned long levels, total, start, end;
+	unsigned long levels_ms = 0;
+	unsigned long levels_s = 0;
+	unsigned long total, start, end;
 	static unsigned long last_total;
 	static int firsttime = 1;
 	int delta;
-
-	struct latency_record  *latency_records = NULL;
+	struct latency_record  *latency_records_ms = NULL;
+	struct latency_record  *latency_records_s = NULL;
+	struct lat_prof prof;
 
 	/* 0 means load system default configs */
 	if (latency_threshold == 0 ||
@@ -273,21 +379,28 @@ int is_dm_target_io_latency_ok(const char *target_name,
 	if (ret < 0)
 		goto out;
 
-	fd = open_dm_target_latency_profile(target_name);
-	if (fd < 0) {
-		ret = -1;
+	prof.ms_fd = -1;
+	prof.s_fd = -1;
+	ret = open_dm_target_latency_profile(target_name, &prof);
+	if (ret < 0)
 		goto out;
-	}
 
-	ret = load_dm_latency_stats(fd,
-				    &latency_records,
-				    &levels);
+	ret = load_dm_latency_stats_ms(prof.ms_fd,
+				       &latency_records_ms,
+				       &levels_ms);
 	if (ret < 0)
 		goto out_close_profile;
 
-	for (i = 0; i < levels; i ++) {
-		start = latency_records[i].start;
-		end = start + latency_records[i].length;
+	ret = load_dm_latency_stats_s(prof.s_fd,
+				      &latency_records_s,
+				      &levels_s);
+	if (ret < 0)
+		goto out_release_memory;
+
+	/* threshold can only be in millisecond level */
+	for (i = 0; i < levels_ms; i ++) {
+		start = latency_records_ms[i].start;
+		end = start + latency_records_ms[i].length;
 
 		if ((latency_threshold >= start) &&
 		    (latency_threshold < end))
@@ -295,13 +408,15 @@ int is_dm_target_io_latency_ok(const char *target_name,
 	}
 
 	/* threshold too large, no failure triggered */
-	if (i == levels) {
+	if (i == levels_ms) {
 		ret = -1; 
 		goto out_release_memory;
 	}
 
-	for (total = 0; i < levels; i ++)
-		total += latency_records[i].nr;
+	for (total = 0; i < levels_ms; i ++)
+		total += latency_records_ms[i].nr;
+	for (i = 0; i < levels_s; i++)
+		total += latency_records_s[i].nr;
 
 	delta = total - last_total;
 	last_total = total;
@@ -318,13 +433,17 @@ int is_dm_target_io_latency_ok(const char *target_name,
 	}
 
 #ifdef DEBUG
-	printf("threshold: %d, nr: %d\n", latency_threshold, latency_warning_nr);
+	printf("threshold: %d, nr: %d, delta: %d\n",
+		latency_threshold, latency_warning_nr, delta);
 #endif
 
 out_release_memory:
-	free(latency_records);
+	if (latency_records_ms)
+		free(latency_records_ms);
+	if (latency_records_s)
+		free(latency_records_s);
 out_close_profile:
-	close_dm_target_latency_profile(&fd);
+	close_dm_target_latency_profile(&prof);
 out:
 	return ret;
 }
