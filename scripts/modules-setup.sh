@@ -13,7 +13,7 @@ modules_file=/etc/sysconfig/modules/dm-targets.modules
 ko_path=/lib/modules/$uts/kernel/drivers/md/
 ko_file=dm-mod.ko.2.6.32-220.23.1.tb735.el5.x86_64
 
-initrd=/boot/initrd-2.6.32-220.23.1.tb735.el5.x86_64
+initrd=/boot/initrd-2.6.32-220.23.1.tb735.el5.x86_64.img
 
 if [ "$uts" != "2.6.32-220.23.1.tb735.el5.x86_64" ];then
 	echo "dismatch kernel version"
