@@ -1,7 +1,7 @@
-Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.h
+Index: linux-2.6.32-220.23.1.el5/drivers/md/dm.h
 ===================================================================
---- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm.h
-+++ linux-2.6.32-220.23.2.el5/drivers/md/dm.h
+--- linux-2.6.32-220.23.1.el5.orig/drivers/md/dm.h
++++ linux-2.6.32-220.23.1.el5/drivers/md/dm.h
 @@ -30,6 +30,86 @@
  #define DM_TYPE_REQUEST_BASED	2
  
@@ -89,16 +89,14 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.h
   * List of devices that a metadevice uses and should open/close.
   */
  struct dm_dev_internal {
-Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
+Index: linux-2.6.32-220.23.1.el5/drivers/md/dm.c
 ===================================================================
---- linux-2.6.32-220.23.2.el5.orig/drivers/md/dm.c
-+++ linux-2.6.32-220.23.2.el5/drivers/md/dm.c
-@@ -110,87 +110,7 @@ EXPORT_SYMBOL_GPL(dm_get_rq_mapinfo);
- #define DMF_DELETING 4
- #define DMF_NOFLUSH_SUSPENDING 5
+--- linux-2.6.32-220.23.1.el5.orig/drivers/md/dm.c
++++ linux-2.6.32-220.23.1.el5/drivers/md/dm.c
+@@ -112,86 +112,6 @@ EXPORT_SYMBOL_GPL(dm_get_rq_mapinfo);
  #define DMF_MERGE_IS_OPTIONAL 6
--
--/*
+ 
+ /*
 - * Work processed by per-device workqueue.
 - */
 -struct mapped_device {
@@ -178,7 +176,7 @@ Index: linux-2.6.32-220.23.2.el5/drivers/md/dm.c
 -	struct bio flush_bio;
 -};
 -
-+s
- /*
+-/*
   * For mempools pre-allocation at the table loading time.
   */
+ struct dm_md_mempools {
