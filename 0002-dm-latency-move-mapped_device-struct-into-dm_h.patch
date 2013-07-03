@@ -1,7 +1,7 @@
-Index: kernel-2.6.32.36xen/drivers/md/dm.h
+Index: kernel-xen-jeremy/drivers/md/dm.h
 ===================================================================
---- kernel-2.6.32.36xen.orig/drivers/md/dm.h
-+++ kernel-2.6.32.36xen/drivers/md/dm.h
+--- kernel-xen-jeremy.orig/drivers/md/dm.h
++++ kernel-xen-jeremy/drivers/md/dm.h
 @@ -30,6 +30,87 @@
  #define DM_TYPE_REQUEST_BASED	2
  
@@ -90,3 +90,95 @@ Index: kernel-2.6.32.36xen/drivers/md/dm.h
   * List of devices that a metadevice uses and should open/close.
   */
  struct dm_dev_internal {
+Index: kernel-xen-jeremy/drivers/md/dm.c
+===================================================================
+--- kernel-xen-jeremy.orig/drivers/md/dm.c
++++ kernel-xen-jeremy/drivers/md/dm.c
+@@ -111,87 +111,6 @@ EXPORT_SYMBOL_GPL(dm_get_rq_mapinfo);
+ #define DMF_QUEUE_IO_TO_THREAD 6
+ 
+ /*
+- * Work processed by per-device workqueue.
+- */
+-struct mapped_device {
+-	struct rw_semaphore io_lock;
+-	struct mutex suspend_lock;
+-	rwlock_t map_lock;
+-	atomic_t holders;
+-	atomic_t open_count;
+-
+-	unsigned long flags;
+-
+-	struct request_queue *queue;
+-	struct gendisk *disk;
+-	char name[16];
+-
+-	void *interface_ptr;
+-
+-	/*
+-	 * A list of ios that arrived while we were suspended.
+-	 */
+-	atomic_t pending[2];
+-	wait_queue_head_t wait;
+-	struct work_struct work;
+-	struct bio_list deferred;
+-	spinlock_t deferred_lock;
+-
+-	/*
+-	 * An error from the barrier request currently being processed.
+-	 */
+-	int barrier_error;
+-
+-	/*
+-	 * Processing queue (flush/barriers)
+-	 */
+-	struct workqueue_struct *wq;
+-
+-	/*
+-	 * The current mapping.
+-	 */
+-	struct dm_table *map;
+-
+-	/*
+-	 * io objects are allocated from here.
+-	 */
+-	mempool_t *io_pool;
+-	mempool_t *tio_pool;
+-
+-	struct bio_set *bs;
+-
+-	/*
+-	 * Event handling.
+-	 */
+-	atomic_t event_nr;
+-	wait_queue_head_t eventq;
+-	atomic_t uevent_seq;
+-	struct list_head uevent_list;
+-	spinlock_t uevent_lock; /* Protect access to uevent_list */
+-
+-	/*
+-	 * freeze/thaw support require holding onto a super block
+-	 */
+-	struct super_block *frozen_sb;
+-	struct block_device *bdev;
+-
+-	/* forced geometry settings */
+-	struct hd_geometry geometry;
+-
+-	/* marker of flush suspend for request-based dm */
+-	struct request suspend_rq;
+-
+-	/* For saving the address of __make_request for request based dm */
+-	make_request_fn *saved_make_request_fn;
+-
+-	/* sysfs handle */
+-	struct kobject kobj;
+-
+-	/* zero-length barrier that will be cloned and submitted to targets */
+-	struct bio barrier_bio;
+-};
+-
+-/*
+  * For mempools pre-allocation at the table loading time.
+  */
+ struct dm_md_mempools {
