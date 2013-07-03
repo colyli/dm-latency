@@ -1,7 +1,7 @@
-Index: linux-2.6.32-220.23.1.el5/drivers/md/dm-sysfs.c
+Index: kernel-2.6.32.36xen/drivers/md/dm-sysfs.c
 ===================================================================
---- linux-2.6.32-220.23.1.el5.orig/drivers/md/dm-sysfs.c
-+++ linux-2.6.32-220.23.1.el5/drivers/md/dm-sysfs.c
+--- kernel-2.6.32.36xen.orig/drivers/md/dm-sysfs.c
++++ kernel-2.6.32.36xen/drivers/md/dm-sysfs.c
 @@ -12,13 +12,17 @@
  struct dm_sysfs_attr {
  	struct attribute attr;
@@ -85,7 +85,7 @@ Index: linux-2.6.32-220.23.1.el5/drivers/md/dm-sysfs.c
  	NULL,
  };
  
- static const struct sysfs_ops dm_sysfs_ops = {
+ static struct sysfs_ops dm_sysfs_ops = {
  	.show	= dm_attr_show,
 +	.store	= dm_attr_store,
  };
