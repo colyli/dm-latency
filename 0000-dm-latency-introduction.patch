@@ -1,0 +1,42 @@
+From: Coly Li <bosong.ly@alibaba-inc.com>
+Cc: Laurence Oberman <loberman@redhat.com>
+Cc: Alasdair Kergon <agk@redhat.com>
+Subject: [PATCH 0/4] dm-latency: Introduction
+
+Dm-latency patch set is an effort to measure hard disk I/O latency on top of
+device mapper layer. The original motivation of I/O latency measurement was to
+predict hard disk failure by machine learning method, I/O latency information
+was one of the inputs sent to machine learning model.
+
+This patch set was written in Aug~Sep 2013, I deployed it on many servers of
+Alibaba cloud infrastructure. After running for weeks, some interesting data
+about hard disk I/O latency was observed. In 2013, I gave a talk on OpenSuSE
+Conference about this topic (http://blog.coly.li/docs/osc13-coly.pdf).
+
+When generating time stamp for I/O request, clock source is a global unique
+resource which is protected by spin-locks. Dm-latency was tested on SAS/SATA
+hard disk and SATA SSD, it worked well as expected. Running dm-latency on PCI-e
+or NVMe SSD should work (I didn't test), but there will be spin-lock scalability
+issue, when accessing clock source for time stamping.
+
+Dm-latency is good for I/O latency measurement to hard disk based storage, no
+matter local or distributed storage via network. For PCI-e or NVMe SSD, I
+suggest people to look for device provided statistic information, if there is. 
+
+The code is very simple, there is no resource allocation/destory, no
+spin_lock/spin_unlock. The patch set gets merged into Alibaba kernel more
+than 1 year, no bug reported in last 12 months.
+
+This patch set has 4 patches,
+- [PATCH 1/4] dm-latency: move struct mapped_device from dm.c to dm.h
+- [PATCH 2/4] dm-latency: add I/O latency measurement in device mapper
+- [PATCH 3/4] dm-latency: add sysfs interface
+- [PATCH 4/4] dm-latency: add reset function to dm-latency in sysfs interface
+
+Today Laurence Oberman from Redhat sent me an email asking whether this patch
+set is upstream merged, because he is thinking of pulling this patch set into
+their kernel. I'd like to maintain this patch set, hope it could be merged.
+
+Thanks in advance.
+
+Coly Li
