@@ -1,4 +1,6 @@
 From: Coly Li <bosong.ly@alibaba-inc.com>
+Cc: Laurence Oberman <loberman@redhat.com>
+Cc: Alasdair Kergon <agk@redhat.com>
 Subject: [PATCH 2/4] dm-latency: add I/O latency measurement in device mapper
 
 This patch adds I/O latency measurement code in dm.c. The basic idea is,

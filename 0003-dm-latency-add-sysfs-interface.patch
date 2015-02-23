@@ -1,4 +1,6 @@
 From: Coly Li <bosong.ly@alibaba-inc.com>
+Cc: Laurence Oberman <loberman@redhat.com>
+Cc: Alasdair Kergon <agk@redhat.com>
 Subject: [PATCH 3/4] dm-latency: add sysfs interface
 
 This patch adds sysfs interface to display io latency statistic info.

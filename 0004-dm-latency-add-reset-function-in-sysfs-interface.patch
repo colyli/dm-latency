@@ -1,4 +1,6 @@
 From: Coly Li <bosong.ly@alibaba-inc.com>
+Cc: Laurence Oberman <loberman@redhat.com>
+Cc: Alasdair Kergon <agk@redhat.com>
 Subject: [PATCH 4/4] dm-latency: add reset function to dm-latency in sysfs interface
 
 Now echo any thing into /sys/block/dm-X/dm/io_latency_reset may

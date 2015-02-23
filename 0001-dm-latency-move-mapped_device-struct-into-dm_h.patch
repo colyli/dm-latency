@@ -1,4 +1,6 @@
 From: Coly Li <bosong.ly@alibaba-inc.com>
+Cc: Laurence Oberman <loberman@redhat.com>
+Cc: Alasdair Kergon <agk@redhat.com>
 Subject: [PATCH 1/4] dm-latency: move struct mapped_device from dm.c to dm.h
 
 Because struct mapped_device will be referenced in dm-sysfs.c, move its
