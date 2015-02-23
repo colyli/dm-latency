@@ -32,6 +32,7 @@ This patch set has 4 patches,
 - [PATCH 2/4] dm-latency: add I/O latency measurement in device mapper
 - [PATCH 3/4] dm-latency: add sysfs interface
 - [PATCH 4/4] dm-latency: add reset function to dm-latency in sysfs interface
+All these patches are rebased on Linux 4.0-rc1.
 
 Today Laurence Oberman from Redhat sent me an email asking whether this patch
 set is upstream merged, because he is thinking of pulling this patch set into
