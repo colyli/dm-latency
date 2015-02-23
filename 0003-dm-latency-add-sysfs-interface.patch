@@ -1,16 +1,19 @@
-Index: linux-latency/drivers/md/dm-sysfs.c
-===================================================================
---- linux-latency.orig/drivers/md/dm-sysfs.c
-+++ linux-latency/drivers/md/dm-sysfs.c
-@@ -5,6 +5,7 @@
-  */
+ drivers/md/dm-sysfs.c |   70 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 70 insertions(+)
+
+diff --git a/drivers/md/dm-sysfs.c b/drivers/md/dm-sysfs.c
+index c62c5ab..eab2dde 100644
+--- a/drivers/md/dm-sysfs.c
++++ b/drivers/md/dm-sysfs.c
+@@ -6,6 +6,7 @@
  
  #include <linux/sysfs.h>
-+#include <asm/atomic.h>
  #include <linux/dm-ioctl.h>
++#include <asm/atomic.h>
  #include "dm.h"
  
-@@ -68,14 +69,84 @@ static ssize_t dm_attr_suspended_show(st
+ struct dm_sysfs_attr {
+@@ -64,14 +65,83 @@ static ssize_t dm_attr_suspended_show(struct mapped_device *md, char *buf)
  	return strlen(buf);
  }
  
@@ -34,7 +37,6 @@ Index: linux-latency/drivers/md/dm-sysfs.c
 +
 +	return strlen(buf);
 +}
-+
 +
 +static ssize_t dm_attr_io_latency_ms_show(struct mapped_device *md, char *buf)
 +{

@@ -1,7 +1,10 @@
-Index: linux-latency/drivers/md/dm-sysfs.c
-===================================================================
---- linux-latency.orig/drivers/md/dm-sysfs.c
-+++ linux-latency/drivers/md/dm-sysfs.c
+ drivers/md/dm-sysfs.c |   45 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 44 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/md/dm-sysfs.c b/drivers/md/dm-sysfs.c
+index eab2dde..1a4864d 100644
+--- a/drivers/md/dm-sysfs.c
++++ b/drivers/md/dm-sysfs.c
 @@ -12,13 +12,17 @@
  struct dm_sysfs_attr {
  	struct attribute attr;
@@ -21,7 +24,7 @@ Index: linux-latency/drivers/md/dm-sysfs.c
  static ssize_t dm_attr_show(struct kobject *kobj, struct attribute *attr,
  			    char *page)
  {
-@@ -41,6 +45,27 @@ static ssize_t dm_attr_show(struct kobje
+@@ -40,6 +44,27 @@ static ssize_t dm_attr_show(struct kobject *kobj, struct attribute *attr,
  	return ret;
  }
  
@@ -48,8 +51,8 @@ Index: linux-latency/drivers/md/dm-sysfs.c
 +
  static ssize_t dm_attr_name_show(struct mapped_device *md, char *buf)
  {
- 	dm_enter
-@@ -133,12 +158,27 @@ static ssize_t dm_attr_io_latency_s_show
+ 	if (dm_copy_name_and_uuid(md, buf, NULL))
+@@ -128,12 +153,27 @@ static ssize_t dm_attr_io_latency_s_show(struct mapped_device *md, char *buf)
  	return strlen(buf);
  }
  
@@ -77,7 +80,7 @@ Index: linux-latency/drivers/md/dm-sysfs.c
  
  static struct attribute *dm_attrs[] = {
  	&dm_attr_name.attr,
-@@ -147,11 +187,13 @@ static struct attribute *dm_attrs[] = {
+@@ -142,11 +182,14 @@ static struct attribute *dm_attrs[] = {
  	&dm_attr_io_latency_us.attr,
  	&dm_attr_io_latency_ms.attr,
  	&dm_attr_io_latency_s.attr,
@@ -88,6 +91,7 @@ Index: linux-latency/drivers/md/dm-sysfs.c
  static const struct sysfs_ops dm_sysfs_ops = {
  	.show	= dm_attr_show,
 +	.store	= dm_attr_store,
++
  };
  
  /*

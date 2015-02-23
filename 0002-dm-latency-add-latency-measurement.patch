@@ -1,24 +1,28 @@
-Index: linux-latency/drivers/md/dm.c
-===================================================================
---- linux-latency.orig/drivers/md/dm.c
-+++ linux-latency/drivers/md/dm.c
-@@ -19,6 +19,7 @@
- #include <linux/idr.h>
+ drivers/md/dm.c |   69 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ drivers/md/dm.h |   13 +++++++++++++
+ 2 files changed, 82 insertions(+)
+
+diff --git a/drivers/md/dm.c b/drivers/md/dm.c
+index e2532c8..200954a 100644
+--- a/drivers/md/dm.c
++++ b/drivers/md/dm.c
+@@ -20,6 +20,7 @@
  #include <linux/hdreg.h>
  #include <linux/delay.h>
+ #include <linux/wait.h>
 +#include <linux/clocksource.h>
  
  #include <trace/events/block.h>
  
-@@ -60,6 +61,7 @@ struct dm_io {
+@@ -67,6 +68,7 @@ struct dm_io {
+ 	atomic_t io_count;
  	struct bio *bio;
  	unsigned long start_time;
- 	spinlock_t endio_lock;
 +	unsigned long start_time_usec;
+ 	spinlock_t endio_lock;
+ 	struct dm_stats_aux stats_aux;
  };
- 
- /*
-@@ -390,14 +392,71 @@ static int md_in_flight(struct mapped_de
+@@ -521,14 +523,72 @@ static int md_in_flight(struct mapped_device *md)
  	       atomic_read(&md->pending[WRITE]);
  }
  
@@ -79,29 +83,29 @@ Index: linux-latency/drivers/md/dm.c
  static void start_io_acct(struct dm_io *io)
  {
  	struct mapped_device *md = io->md;
+ 	struct bio *bio = io->bio;
 +	ktime_t ts;
++
  	int cpu;
- 	int rw = bio_data_dir(io->bio);
+ 	int rw = bio_data_dir(bio);
  
- 	dm_enter
  	io->start_time = jiffies;
 +	ts = ktime_get();
 +	io->start_time_usec = (unsigned long)ktime_to_us(ts);
  
  	cpu = part_stat_lock();
  	part_round_stats(cpu, &dm_disk(md)->part0);
-@@ -420,6 +479,8 @@ static void end_io_acct(struct dm_io *io
- 	part_stat_add(cpu, &dm_disk(md)->part0, ticks[rw], duration);
- 	part_stat_unlock();
+@@ -549,6 +609,7 @@ static void end_io_acct(struct dm_io *io)
+ 	int pending;
+ 	int rw = bio_data_dir(bio);
  
 +	update_latency_stats(md, io);
-+
- 	/*
- 	 * After this is decremented the bio must not be touched if it is
- 	 * a flush.
-@@ -1932,6 +1993,14 @@ static struct mapped_device *alloc_dev(i
- 	md->flush_bio.bi_bdev = md->bdev;
- 	md->flush_bio.bi_rw = WRITE_FLUSH;
+ 	generic_end_io_acct(rw, &dm_disk(md)->part0, io->start_time);
+ 
+ 	if (unlikely(dm_stats_used(&md->stats)))
+@@ -2118,6 +2179,14 @@ static struct mapped_device *alloc_dev(int minor)
+ 
+ 	dm_stats_init(&md->stats);
  
 +	/* initial latency stats buckets */
 +	for (r = 0; r < DM_LATENCY_STATS_S_NR; r++)
@@ -114,15 +118,15 @@ Index: linux-latency/drivers/md/dm.c
  	/* Populate the mapping, nobody knows we exist yet */
  	spin_lock(&_minor_lock);
  	old_md = idr_replace(&_minor_idr, md, minor);
-Index: linux-latency/drivers/md/dm.h
-===================================================================
---- linux-latency.orig/drivers/md/dm.h
-+++ linux-latency/drivers/md/dm.h
-@@ -34,6 +34,14 @@
- #define DM_TYPE_BIO_BASED	1
- #define DM_TYPE_REQUEST_BASED	2
+diff --git a/drivers/md/dm.h b/drivers/md/dm.h
+index 3014667..6c254f4 100644
+--- a/drivers/md/dm.h
++++ b/drivers/md/dm.h
+@@ -32,6 +32,14 @@
+  */
+ #define DM_STATUS_NOFLUSH_FLAG		(1 << 0)
  
-+/* 300s is max disk I/O latency which application may accept */
++/* 100s is long enough to measure disk I/O latency */
 +#define DM_LATENCY_STATS_S_NR		100
 +#define DM_LATENCY_STATS_S_GRAINSIZE	(1000/DM_LATENCY_STATS_S_NR)
 +#define DM_LATENCY_STATS_MS_NR		100
@@ -131,12 +135,12 @@ Index: linux-latency/drivers/md/dm.h
 +#define DM_LATENCY_STATS_US_GRAINSIZE	(1000/DM_LATENCY_STATS_US_NR)
 +
  /*
-  * Work processed by per-device workqueue.
+  * Type of table and mapped_device's mempool
   */
-@@ -107,6 +115,11 @@ struct mapped_device {
+@@ -135,6 +143,11 @@ struct mapped_device {
  
- 	/* zero-length flush that will be cloned and submitted to targets */
- 	struct bio flush_bio;
+ 	struct kthread_worker kworker;
+ 	struct task_struct *kworker_task;
 +
 +	/* latency statistic buckets */
 +	atomic_t latency_stats_s[DM_LATENCY_STATS_S_NR];
