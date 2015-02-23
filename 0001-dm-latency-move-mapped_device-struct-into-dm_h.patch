@@ -1,3 +1,13 @@
+From: Coly Li <bosong.ly@alibaba-inc.com>
+Subject: [PATCH 1/4] dm-latency: move struct mapped_device from dm.c to dm.h
+
+Because struct mapped_device will be referenced in dm-sysfs.c, move its
+definition into dm.h which is included by dm-sysfs.c
+
+Signed-off-by: Coly Li <bosong.ly@alibaba-inc.com>
+Reviewed-by: Robin Dong <sanbai@alibaba-inc.com>
+Reviewed-by: Tao Ma <boyu.mt@taobao.com>
+---
  drivers/md/dm.c |   89 --------------------------------------------------------------------------------------
  drivers/md/dm.h |  106 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
  2 files changed, 98 insertions(+), 97 deletions(-)

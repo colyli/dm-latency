@@ -1,3 +1,20 @@
+From: Coly Li <bosong.ly@alibaba-inc.com>
+Subject: [PATCH 2/4] dm-latency: add I/O latency measurement in device mapper
+
+This patch adds I/O latency measurement code in dm.c. The basic idea is,
+1) add timestamp in struct dm_io as unsigned long start_time_usec
+2) set timestamp when dm_io issued to underlaying block layer.
+3) when all sub-I/O completed, calculate time difference against
+start_time_usec as I/O latency.
+4) account the latency to corresponding counters like,
+   - latency_stats_us
+   - latency_stats_ms
+   - latency_stats_s
+
+Signed-off-by: Coly Li <bosong.ly@alibaba-inc.com>
+Reviewed-by: Robin Dong <sanbai@alibaba-inc.com>
+Reviewed-by: Tao Ma <boyu.mt@taobao.com>
+---
  drivers/md/dm.c |   69 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  drivers/md/dm.h |   13 +++++++++++++
  2 files changed, 82 insertions(+)

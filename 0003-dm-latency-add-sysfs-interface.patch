@@ -1,3 +1,19 @@
+From: Coly Li <bosong.ly@alibaba-inc.com>
+Subject: [PATCH 3/4] dm-latency: add sysfs interface
+
+This patch adds sysfs interface to display io latency statistic info.
+3 files are used to export statistic info based on delay unit level,
+- /sys/block/dm-X/dm/io_latency_us
+- /sys/block/dm-X/dm/io_latency_ms
+- /sys/block/dm-X/dm/io_latency_s
+
+The statistic counter is increasing only, a user space application
+should calculate "delta" value for a sampling interval.
+
+Signed-off-by: Coly Li <bosong.ly@alibaba-inc.com>
+Reviewed-by: Robin Dong <sanbai@alibaba-inc.com>
+Reviewed-by: Tao Ma <boyu.mt@taobao.com>
+---
  drivers/md/dm-sysfs.c |   70 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  1 file changed, 70 insertions(+)
 

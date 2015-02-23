@@ -1,3 +1,15 @@
+From: Coly Li <bosong.ly@alibaba-inc.com>
+Subject: [PATCH 4/4] dm-latency: add reset function to dm-latency in sysfs interface
+
+Now echo any thing into /sys/block/dm-X/dm/io_latency_reset may
+reset all counters in /sys/block/dm-X/dm/io_latency_{s,ms, us} to 0.
+
+This function might be helpful to application developers.
+
+Signed-off-by: Coly Li <bosong.ly@alibaba-inc.com>
+Reviewed-by: Robin Dong <sanbai@alibaba-inc.com>
+Reviewed-by: Tao Ma <boyu.mt@taobao.com>
+---
  drivers/md/dm-sysfs.c |   45 ++++++++++++++++++++++++++++++++++++++++++++-
  1 file changed, 44 insertions(+), 1 deletion(-)
 
